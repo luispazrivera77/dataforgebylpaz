@@ -1071,7 +1071,7 @@
         if (!form.pivotFormId) return form.data;
         const parentRecord = getActiveRecord(form.pivotFormId);
         if (!parentRecord) return [];
-        // Filtrado estricto por _parentId
+        // Filtro estricto: solo los registros hijos cuyo _parentId coincida exactamente con el id del padre actual
         return form.data.filter(r => r._parentId === parentRecord._id);
     }
 
@@ -1378,22 +1378,28 @@
             formObj.pivotFormId = newPivotId;
             formObj.pivotField = parts[1];
 
-            // Al convertir a dependiente, si los registros no tienen _parentId válido,
-            // los asociamos al primer registro del padre o dejamos un ID por defecto para que no se queden huérfanos sin filtrar.
+            // Asignación inteligente: si los registros no tienen _parentId correcto, revisamos si algún campo del hijo contiene el nombre del padre
             const parentForm = getForm(newPivotId);
-            const firstParentId = parentForm && parentForm.data.length > 0 ? parentForm.data[0]._id : null;
-            
-            formObj.data.forEach((r, idx) => {
-                if (r._parentId === undefined || r._parentId === null) {
-                    // Si hay varios padres, distribuimos equitativamente o asignamos al primero
-                    if (parentForm && parentForm.data.length > 0) {
-                        const targetParent = parentForm.data[idx % parentForm.data.length];
-                        r._parentId = targetParent._id;
-                    } else {
-                        r._parentId = firstParentId;
+            if (parentForm && parentForm.data.length > 0) {
+                formObj.data.forEach(r => {
+                    let matchedParentId = null;
+                    // Buscar coincidencia en los campos del registro hijo con los valores del padre
+                    for (let key in r) {
+                        if (key.startsWith('_')) continue;
+                        const valStr = String(r[key] || '').toLowerCase();
+                        const matchingParent = parentForm.data.find(p => {
+                            const pVal = String(p[formObj.pivotField] || '').toLowerCase();
+                            return pVal && (valStr.includes(pVal) || pVal.includes(valStr));
+                        });
+                        if (matchingParent) {
+                            matchedParentId = matchingParent._id;
+                            break;
+                        }
                     }
-                }
-            });
+                    // Si no hubo coincidencia de texto, asignamos al primer padre por defecto
+                    r._parentId = matchedParentId !== null ? matchedParentId : parentForm.data[0]._id;
+                });
+            }
         } else {
             formObj.pivotFormId = null;
             formObj.pivotField = "";
