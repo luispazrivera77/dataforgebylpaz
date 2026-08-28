@@ -118,7 +118,6 @@
         font-weight: 500;
     }
 
-    /* Propuesta de valor clara (Hero text) */
     .hero-banner {
         background: var(--surface-2);
         border: 1px solid var(--border-gold);
@@ -760,10 +759,10 @@
             </div>
         </div>
 
-        <!-- Hero / Propuesta de Valor -->
+        <!-- Hero / Propuesta de Valor actualizada -->
         <div class="hero-banner">
-            <h1 class="hero-title">Diseña y sincroniza datos sin fricción</h1>
-            <p class="hero-desc">Crea formularios con validaciones en tiempo real, relaciona registros en cascada (Padre-Hijo), exporta o sincroniza mediante Webhooks de forma instantánea.</p>
+            <h1 class="hero-title">Trabaja, Diseña y sincroniza datos sin fricción</h1>
+            <p class="hero-desc">Crea bases de datos para exportar a excel, formularios con validaciones en tiempo real, relaciona registros en cascada (Padre-Hijo), exporta o sincroniza mediante Webhooks de forma instantánea.</p>
         </div>
 
         <div class="search-box-wrap" id="global-search-container">
@@ -1139,7 +1138,7 @@
     }
 
     function resetAppCompletely() {
-        if (!confirm('¿Reiniciar la aplicación y borrar todos los datos?')) return;
+        if (!confirm('¿Estás seguro de reiniciar la aplicación? Se borrarán todos los formularios y registros actuales para volver al principio.')) return;
         formsRegistry = [];
         activeIndexByForm = {};
         activeFormId = null;
