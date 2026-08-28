@@ -1374,12 +1374,9 @@
         const pivotSelect = document.getElementById('form-pivot-source');
         if (pivotSelect && pivotSelect.value) {
             const parts = pivotSelect.value.split('::');
-            const newPivotFormId = parseInt(parts[0]);
-            if (newPivotFormId !== formObj.pivotFormId) formObj.data = [];
-            formObj.pivotFormId = newPivotFormId;
+            formObj.pivotFormId = parseInt(parts[0]);
             formObj.pivotField = parts[1];
         } else {
-            if (formObj.pivotFormId !== null) formObj.data = [];
             formObj.pivotFormId = null;
             formObj.pivotField = "";
         }
