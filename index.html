@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DataForge — Constructor de formularios</title>
+<title>DataForge — Constructor visual de formularios y datos estructurados</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d9a653' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><rect width='18' height='18' x='3' y='3' rx='2'/><path d='M3 9h18'/><path d='M9 21V9'/></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=IBM+Plex+Mono:wght@500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -94,7 +95,7 @@
         display: flex;
         align-items: baseline;
         justify-content: space-between;
-        margin-bottom: 20px;
+        margin-bottom: 16px;
         border-bottom: 1px solid var(--border);
         padding-bottom: 16px;
     }
@@ -117,6 +118,33 @@
         font-weight: 500;
     }
 
+    /* Propuesta de valor clara (Hero text) */
+    .hero-banner {
+        background: var(--surface-2);
+        border: 1px solid var(--border-gold);
+        border-radius: 12px;
+        padding: 16px 20px;
+        margin-bottom: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .hero-title {
+        font-family: var(--font-display);
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--text);
+        margin: 0;
+    }
+
+    .hero-desc {
+        font-size: 13px;
+        color: var(--text-dim);
+        line-height: 1.5;
+        margin: 0;
+    }
+
     h2 {
         font-family: var(--font-display);
         font-size: 20px;
@@ -130,30 +158,6 @@
         margin: 0 0 20px 0;
         line-height: 1.5;
     }
-
-    .tip-bubble {
-        background: var(--surface-2);
-        border: 1px solid var(--border-gold);
-        border-radius: 10px;
-        padding: 12px 14px;
-        font-size: 12.5px;
-        color: var(--text-dim);
-        margin-bottom: 16px;
-        display: flex;
-        align-items: flex-start;
-        gap: 10px;
-        line-height: 1.5;
-    }
-
-    .tip-bubble svg {
-        color: var(--gold);
-        width: 16px;
-        height: 16px;
-        flex-shrink: 0;
-        margin-top: 2px;
-    }
-
-    .tip-bubble strong { color: var(--gold); font-weight: 600; }
 
     label.field-label {
         font-family: var(--font-mono);
@@ -309,6 +313,7 @@
     }
 
     .btn:hover { background: var(--surface-hover); border-color: var(--border-gold); }
+    .btn:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
     .btn-icon-only { padding: 9px; }
     .btn-gold { background: var(--gold); border: none; color: #0a0d14; font-weight: 600; }
     .btn-gold:hover { background: var(--gold-hover); box-shadow: 0 0 15px rgba(217, 166, 83, 0.25); }
@@ -667,7 +672,7 @@
         margin: 16px 0;
     }
 
-    /* Modal / Preview / README */
+    /* Modal */
     .modal-overlay {
         position: fixed;
         inset: 0;
@@ -730,39 +735,40 @@
             <div style="display:flex; gap:6px;">
                 <input type="file" id="import-file-input" accept=".xlsx, .xls" style="display:none;" onchange="importExcelData(event)">
                 
-                <button onclick="openReadmeModal()" class="btn btn-ghost-gold btn-icon-only" title="Guía y README">
+                <button onclick="openReadmeModal()" class="btn btn-ghost-gold btn-icon-only" aria-label="Guía de uso y documentación" title="Documentación">
                     <svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
                 </button>
-                <button onclick="resetAppCompletely()" class="btn btn-ghost-gold btn-icon-only" title="Reiniciar aplicación">
+                <button onclick="resetAppCompletely()" class="btn btn-ghost-gold btn-icon-only" aria-label="Reiniciar aplicación" title="Reiniciar aplicación">
                     <svg class="ic" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
                 </button>
-                <button onclick="document.getElementById('import-file-input').click()" class="btn btn-ghost-gold btn-icon-only" title="Cargar Excel">
+                <button onclick="document.getElementById('import-file-input').click()" class="btn btn-ghost-gold btn-icon-only" aria-label="Cargar desde Excel" title="Cargar Excel">
                     <svg class="ic" viewBox="0 0 24 24"><path d="M12 21v-11"/><path d="M7.5 13.5 12 9l4.5 4.5"/><path d="M5 3h14"/></svg>
                 </button>
-                <button id="export-btn" onclick="exportAllData()" class="btn btn-ghost-gold btn-icon-only" title="Exportar a Excel" style="display:none;">
+                <button id="export-btn" onclick="exportAllData()" class="btn btn-ghost-gold btn-icon-only" aria-label="Exportar a Excel" title="Exportar a Excel" style="display:none;">
                     <svg class="ic" viewBox="0 0 24 24"><path d="M12 3v11"/><path d="M7.5 10.5 12 15l4.5-4.5"/><path d="M5 21h14"/></svg>
                 </button>
-                <button id="export-csv-btn" onclick="exportDataCSV()" class="btn btn-ghost-gold btn-icon-only" title="Exportar CSV" style="display:none;">
+                <button id="export-csv-btn" onclick="exportDataCSV()" class="btn btn-ghost-gold btn-icon-only" aria-label="Exportar a CSV" title="Exportar CSV" style="display:none;">
                     <svg class="ic" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
                 </button>
-                <button id="export-json-btn" onclick="exportDataJSON()" class="btn btn-ghost-gold btn-icon-only" title="Exportar JSON" style="display:none;">
+                <button id="export-json-btn" onclick="exportDataJSON()" class="btn btn-ghost-gold btn-icon-only" aria-label="Exportar a JSON" title="Exportar JSON" style="display:none;">
                     <svg class="ic" viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
                 </button>
-                <button onclick="startNewForm()" class="btn btn-gold" title="Crear formulario">
+                <button onclick="startNewForm()" class="btn btn-gold" aria-label="Crear nuevo formulario" title="Crear formulario">
                     <svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
                     Nuevo
                 </button>
             </div>
         </div>
 
-        <div class="tip-bubble">
-            <svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
-            <div><strong>Panel Principal:</strong> Selecciona un formulario, prueba una plantilla o haz clic en el botón de ayuda <strong>(?)</strong> para ver la documentación y el ejemplo de Webhook.</div>
+        <!-- Hero / Propuesta de Valor -->
+        <div class="hero-banner">
+            <h1 class="hero-title">Diseña y sincroniza datos sin fricción</h1>
+            <p class="hero-desc">Crea formularios con validaciones en tiempo real, relaciona registros en cascada (Padre-Hijo), exporta o sincroniza mediante Webhooks de forma instantánea.</p>
         </div>
 
         <div class="search-box-wrap" id="global-search-container">
             <svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-            <input type="text" id="global-search-input" placeholder="Buscar en cualquier campo o formulario..." oninput="handleGlobalSearch(this.value)">
+            <input type="text" id="global-search-input" placeholder="Buscar en cualquier campo o formulario..." aria-label="Buscar en cualquier campo o formulario" oninput="handleGlobalSearch(this.value)">
         </div>
 
         <div id="global-search-results" class="global-search-results" style="display:none;"></div>
@@ -772,7 +778,7 @@
                 <svg class="ic" viewBox="0 0 24 24" style="width:24px;height:24px;"><path d="M12 5v14M5 12h14"/></svg>
             </div>
             <h3>Comienza con DataForge</h3>
-            <p>Crea tu primer formulario o elige una de nuestras 5 plantillas prediseñadas:</p>
+            <p>Crea tu primer formulario desde cero o elige una de nuestras 5 plantillas prediseñadas:</p>
             <div class="templates-grid">
                 <div class="template-card" onclick="loadTemplate('obras')">
                     <span>🏗️ Obras y Compras</span>
@@ -818,23 +824,18 @@
         <h2 id="builder-heading">Definir formulario</h2>
         <p class="subtitle" id="builder-subtitle">Configura los campos, reglas y opcionalmente un Webhook de salida.</p>
 
-        <div class="tip-bubble">
-            <svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
-            <div><strong>Webhook:</strong> Si defines una URL (ej. de Make o Zapier), cada vez que guardes un registro se enviará un payload JSON con la información automáticamente.</div>
-        </div>
-
         <div style="margin-bottom: 14px;">
-            <label class="field-label">Nombre del formulario</label>
+            <label class="field-label" for="form-title-input">Nombre del formulario</label>
             <input type="text" id="form-title-input" placeholder="Ej. Clientes, Pedidos…">
         </div>
 
         <div style="margin-bottom: 14px;">
-            <label class="field-label">Webhook URL (Opcional)</label>
+            <label class="field-label" for="form-webhook-input">Webhook URL (Opcional)</label>
             <input type="text" id="form-webhook-input" placeholder="https://hook.eu1.make.com/...">
         </div>
 
         <div id="pivot-section" style="margin-bottom: 14px; display: none;">
-            <label class="field-label">Depende de (Relación Padre)</label>
+            <label class="field-label" for="form-pivot-source">Depende de (Relación Padre)</label>
             <select id="form-pivot-source">
                 <option value="">No depende de otro — es principal</option>
             </select>
@@ -877,11 +878,11 @@
             </div>
             <div style="display:flex; align-items:center; gap:10px;">
                 <span id="record-indicator">1 / 1</span>
-                <div id="view-toggle" class="view-toggle">
-                    <span class="view-toggle-opt" data-mode="record" onclick="setViewMode('record')">
+                <div id="view-toggle" class="view-toggle" role="group" aria-label="Cambiar vista">
+                    <span class="view-toggle-opt" data-mode="record" onclick="setViewMode('record')" role="button" tabindex="0">
                         <svg class="ic" viewBox="0 0 24 24" style="width:12px;height:12px;"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>
                     </span>
-                    <span class="view-toggle-opt" data-mode="table" onclick="setViewMode('table')">
+                    <span class="view-toggle-opt" data-mode="table" onclick="setViewMode('table')" role="button" tabindex="0">
                         <svg class="ic" viewBox="0 0 24 24" style="width:12px;height:12px;"><path d="M3 9h18M3 15h18M9 3v18"/></svg>
                     </span>
                 </div>
@@ -987,7 +988,7 @@
 </div>
 
 <!-- Notificación Toast -->
-<div id="toast-notification">
+<div id="toast-notification" role="status" aria-live="polite">
     <svg class="ic" viewBox="0 0 24 24" style="width:16px;height:16px;"><path d="M20 6 9 17l-5-5"/></svg>
     <span id="toast-msg">Operación realizada con éxito</span>
 </div>
@@ -1149,9 +1150,6 @@
         showLauncher();
     }
 
-    // ============================================================
-    // PLANTILLAS AMPLIADAS (5 PLANTILLAS)
-    // ============================================================
     function loadTemplate(type) {
         if (type === 'obras') {
             formsRegistry = [
@@ -1352,8 +1350,8 @@
             row.className = 'field-builder-row';
             row.innerHTML = `
                 <div class="row-inputs">
-                    <input type="text" class="f-name" placeholder="Nombre del dato" value="${field.name}" data-index="${index}">
-                    <select class="f-type" data-index="${index}">
+                    <input type="text" class="f-name" placeholder="Nombre del dato" value="${field.name}" data-index="${index}" aria-label="Nombre del campo">
+                    <select class="f-type" data-index="${index}" aria-label="Tipo de campo">
                         <option value="text" ${field.type==='text'?'selected':''}>Texto</option>
                         <option value="number" ${field.type==='number'?'selected':''}>Número</option>
                         <option value="date" ${field.type==='date'?'selected':''}>Fecha</option>
@@ -1624,16 +1622,15 @@
         }
 
         saveCurrentRuntimeData();
-        showToast("Registro guardado");
+        showToast("Registro guardado con éxito");
 
-        // Disparar Webhook si está configurado
         if (formObj.webhook) {
             const currentRecord = findRecordById(activeFormId, renderedRecordId);
             fetch(formObj.webhook, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ form: formObj.title, timestamp: new Date().toISOString(), record: currentRecord })
-            }).catch(err => console.log('Webhook dispatched locally/error:', err));
+            }).catch(err => console.log('Webhook error:', err));
         }
 
         const btn = document.getElementById('save-btn');
@@ -1700,7 +1697,7 @@
         resetDescendantIndices(formObj.id);
         viewMode = 'record';
         renderRuntime();
-        showToast("Nuevo registro");
+        showToast("Nuevo registro creado");
     }
 
     function formToRows(formObj) {
@@ -1730,14 +1727,13 @@
 
     function exportAllData() {
         const wb = XLSX.utils.book_new();
-        const usedNames = new Set();
         formsRegistry.filter(f => f.data.some(r => recordIsExportable(f.id, r))).forEach(formObj => {
             const rows = formToRows(formObj);
             const ws = XLSX.utils.aoa_to_sheet(rows);
             XLSX.utils.book_append_sheet(wb, ws, formObj.title.slice(0, 31));
         });
         XLSX.writeFile(wb, `DataForge_export_${new Date().toISOString().slice(0, 10)}.xlsx`);
-        showToast("Exportado a Excel");
+        showToast("Exportado a Excel correctamente");
     }
 
     function exportDataCSV() {
@@ -1753,7 +1749,7 @@
         link.href = URL.createObjectURL(blob);
         link.download = `DataForge_export_${new Date().toISOString().slice(0, 10)}.csv`;
         link.click();
-        showToast("Exportado a CSV");
+        showToast("Exportado a CSV correctamente");
     }
 
     function exportDataJSON() {
@@ -1762,7 +1758,7 @@
         link.href = dataStr;
         link.download = `DataForge_export_${new Date().toISOString().slice(0, 10)}.json`;
         link.click();
-        showToast("Exportado a JSON");
+        showToast("Exportado a JSON correctamente");
     }
 
     function importExcelData(event) {
@@ -1792,7 +1788,7 @@
                     formsRegistry = tempForms;
                     recordIdCounter = Math.max(...formsRegistry.flatMap(f => f.data.map(r => r._id || 0)), 0) + 1;
                     showLauncher();
-                    showToast("Importado exitosamente");
+                    showToast("Datos importados exitosamente");
                 }
             } catch (err) {
                 alert('Error al leer el archivo Excel.');
