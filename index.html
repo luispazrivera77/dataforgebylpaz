@@ -1071,6 +1071,7 @@
         if (!form.pivotFormId) return form.data;
         const parentRecord = getActiveRecord(form.pivotFormId);
         if (!parentRecord) return [];
+        // Filtrado estrictamente vinculado al _id del registro padre actualmente seleccionado
         return form.data.filter(r => r._parentId === parentRecord._id);
     }
 
@@ -1377,40 +1378,18 @@
             formObj.pivotFormId = newPivotId;
             formObj.pivotField = parts[1];
 
-            // Asignación estricta y limpia: evaluamos cada registro hijo contra los padres buscando la mejor puntuación de coincidencia exacta por palabra
+            // Al convertir en dependiente, aseguramos que los registros huérfanos o sin _parentId 
+            // válido no se mezclen erróneamente: se asignan por defecto al primer padre disponible
+            // para que luego el usuario pueda organizarlos ordenadamente dentro de cada obra.
             const parentForm = getForm(newPivotId);
-            if (parentForm && parentForm.data.length > 0) {
-                formObj.data.forEach(r => {
-                    let bestMatchParentId = null;
-                    let highestScore = 0;
-
-                    parentForm.data.forEach(p => {
-                        const pVal = String(p[formObj.pivotField] || '').trim().toLowerCase();
-                        if (!pVal) return;
-
-                        let score = 0;
-                        for (let key in r) {
-                            if (key.startsWith('_')) continue;
-                            const rVal = String(r[key] || '').trim().toLowerCase();
-                            if (!rVal) continue;
-
-                            if (rVal === pVal) {
-                                score += 100; // Coincidencia exacta total del campo
-                            } else if (rVal.includes(pVal) || pVal.includes(rVal)) {
-                                score += 50;  // Coincidencia parcial robusta
-                            }
-                        }
-
-                        if (score > highestScore) {
-                            highestScore = score;
-                            bestMatchParentId = p._id;
-                        }
-                    });
-
-                    // Si no hubo ninguna coincidencia clara, por defecto se asigna al primer padre para evitar huérfanos sin filtro
-                    r._parentId = bestMatchParentId !== null ? bestMatchParentId : parentForm.data[0]._id;
-                });
-            }
+            const defaultParentId = parentForm && parentForm.data.length > 0 ? parentForm.data[0]._id : null;
+            
+            formObj.data.forEach(r => {
+                const parentExists = parentForm && parentForm.data.some(p => p._id === r._parentId);
+                if (r._parentId === undefined || r._parentId === null || !parentExists) {
+                    r._parentId = defaultParentId;
+                }
+            });
         } else {
             formObj.pivotFormId = null;
             formObj.pivotField = "";
@@ -1707,7 +1686,7 @@
         if (formObj.pivotFormId) {
             const parentRecord = getActiveRecord(formObj.pivotFormId);
             if (!parentRecord) return;
-            parentId = parentRecord._id;
+            parentId = parentRecord._id; // Asignación estrictamente ligada a la obra activa actual
         }
         formObj.data.push({ _id: nextRecordId(), _parentId: parentId });
         activeIndexByForm[formObj.id] = getVisibleRecords(formObj.id).length - 1;
