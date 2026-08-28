@@ -1071,8 +1071,19 @@
         if (!form.pivotFormId) return form.data;
         const parentRecord = getActiveRecord(form.pivotFormId);
         if (!parentRecord) return [];
-        // Filtrado estrictamente vinculado al _id del registro padre actualmente seleccionado
-        return form.data.filter(r => r._parentId === parentRecord._id);
+        
+        // Filtro seguro: muestra los registros que pertenecen exactamente al padre actual.
+        // Si un registro antiguo no tiene _parentId asignado pero hay registros padres, 
+        // lo asociamos de forma flexible al primer padre para evitar que "desaparezca" (0 registros).
+        let filtered = form.data.filter(r => r._parentId === parentRecord._id);
+        if (filtered.length === 0 && form.data.length > 0) {
+            const parentForm = getForm(form.pivotFormId);
+            if (parentForm && parentForm.data.length > 0 && parentForm.data[0]._id === parentRecord._id) {
+                // Si es el primer padre y hay registros huérfanos sin _parentId, se muestran aquí de forma transitoria
+                filtered = form.data.filter(r => r._parentId === undefined || r._parentId === null);
+            }
+        }
+        return filtered;
     }
 
     function getActiveRecord(formId) {
@@ -1374,22 +1385,9 @@
         const pivotSelect = document.getElementById('form-pivot-source');
         if (pivotSelect && pivotSelect.value) {
             const parts = pivotSelect.value.split('::');
-            const newPivotId = parseInt(parts[0]);
-            formObj.pivotFormId = newPivotId;
+            formObj.pivotFormId = parseInt(parts[0]);
             formObj.pivotField = parts[1];
-
-            // Al convertir en dependiente, aseguramos que los registros huérfanos o sin _parentId 
-            // válido no se mezclen erróneamente: se asignan por defecto al primer padre disponible
-            // para que luego el usuario pueda organizarlos ordenadamente dentro de cada obra.
-            const parentForm = getForm(newPivotId);
-            const defaultParentId = parentForm && parentForm.data.length > 0 ? parentForm.data[0]._id : null;
-            
-            formObj.data.forEach(r => {
-                const parentExists = parentForm && parentForm.data.some(p => p._id === r._parentId);
-                if (r._parentId === undefined || r._parentId === null || !parentExists) {
-                    r._parentId = defaultParentId;
-                }
-            });
+            // Al guardar la estructura dependiente, respetamos íntegramente los datos existentes (sin borrar ni sobrescribir _parentId)
         } else {
             formObj.pivotFormId = null;
             formObj.pivotField = "";
@@ -1576,7 +1574,7 @@
         list.innerHTML = '';
 
         children.forEach(child => {
-            const childRecords = child.data.filter(r => r._parentId === currentRecord._id);
+            const childRecords = getVisibleRecordsForChild(child, currentRecord._id);
             const count = countFilledRecords(child, childRecords);
             const row = document.createElement('div');
             row.className = 'thread-item';
@@ -1584,6 +1582,18 @@
             row.onclick = () => launchForm(child.id, { fromDrill: true });
             list.appendChild(row);
         });
+    }
+
+    function getVisibleRecordsForChild(childForm, parentRecordId) {
+        let filtered = childForm.data.filter(r => r._parentId === parentRecordId);
+        // Si no hay registros asignados explícitamente pero es el primer padre y existen registros sin asignar, los mostramos para seguridad
+        if (filtered.length === 0) {
+            const parentForm = getForm(childForm.pivotFormId);
+            if (parentForm && parentForm.data.length > 0 && parentForm.data[0]._id === parentRecordId) {
+                filtered = childForm.data.filter(r => r._parentId === undefined || r._parentId === null);
+            }
+        }
+        return filtered;
     }
 
     function saveCurrentRuntimeData() {
@@ -1686,7 +1696,7 @@
         if (formObj.pivotFormId) {
             const parentRecord = getActiveRecord(formObj.pivotFormId);
             if (!parentRecord) return;
-            parentId = parentRecord._id; // Asignación estrictamente ligada a la obra activa actual
+            parentId = parentRecord._id; // Asignación vinculada estrictamente al registro padre actualmente abierto
         }
         formObj.data.push({ _id: nextRecordId(), _parentId: parentId });
         activeIndexByForm[formObj.id] = getVisibleRecords(formObj.id).length - 1;
