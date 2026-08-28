@@ -250,6 +250,22 @@
     .row-inputs input { flex: 1.4; }
     .row-inputs select { flex: 1; }
 
+    .row-options {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+        color: var(--text-dim);
+        font-family: var(--font-mono);
+    }
+
+    .row-options input[type="checkbox"] {
+        width: 16px;
+        height: 16px;
+        accent-color: var(--gold);
+        cursor: pointer;
+    }
+
     .btn {
         background: var(--surface);
         border: 1px solid var(--border);
@@ -317,9 +333,39 @@
         font-size: 13px;
         color: var(--text-dim);
         margin: 0;
-        max-width: 300px;
+        max-width: 320px;
         line-height: 1.6;
     }
+
+    .templates-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        width: 100%;
+        max-width: 340px;
+        margin-top: 6px;
+    }
+
+    .template-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 10px 14px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        cursor: pointer;
+        transition: 0.2s;
+        text-align: left;
+    }
+
+    .template-card:hover {
+        border-color: var(--border-gold);
+        background: var(--surface-hover);
+    }
+
+    .template-card span { font-size: 13px; font-weight: 500; }
+    .template-card small { font-family: var(--font-mono); font-size: 10px; color: var(--gold); }
 
     .app-launcher-grid {
         display: flex;
@@ -590,6 +636,27 @@
         background: linear-gradient(90deg, transparent, var(--border-gold), transparent);
         margin: 16px 0;
     }
+
+    /* Notificación Toast */
+    #toast-notification {
+        position: fixed;
+        bottom: 24px;
+        left: 50%;
+        transform: translateX(-50%) translateY(100px);
+        background: var(--success);
+        color: #03140f;
+        padding: 10px 20px;
+        border-radius: 10px;
+        font-weight: 600;
+        font-size: 13px;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.5);
+        transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    #toast-notification.show { transform: translateX(-50%) translateY(0); }
 </style>
 </head>
 <body>
@@ -600,7 +667,7 @@
     <section id="screen-launcher" class="screen">
         <div class="brand-row">
             <div class="brand">DataForge<small>CONSTRUCTOR DE DATOS</small></div>
-            <div style="display:flex; gap:8px;">
+            <div style="display:flex; gap:6px;">
                 <input type="file" id="import-file-input" accept=".xlsx, .xls" style="display:none;" onchange="importExcelData(event)">
                 
                 <button onclick="document.getElementById('import-file-input').click()" class="btn btn-ghost-gold btn-icon-only" title="Cargar desde Excel">
@@ -609,9 +676,15 @@
                 <button id="export-btn" onclick="exportAllData()" class="btn btn-ghost-gold btn-icon-only" title="Exportar a Excel" style="display:none;">
                     <svg class="ic" viewBox="0 0 24 24"><path d="M12 3v11"/><path d="M7.5 10.5 12 15l4.5-4.5"/><path d="M5 21h14"/></svg>
                 </button>
+                <button id="export-csv-btn" onclick="exportDataCSV()" class="btn btn-ghost-gold btn-icon-only" title="Exportar CSV" style="display:none;">
+                    <svg class="ic" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                </button>
+                <button id="export-json-btn" onclick="exportDataJSON()" class="btn btn-ghost-gold btn-icon-only" title="Exportar JSON" style="display:none;">
+                    <svg class="ic" viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                </button>
                 <button onclick="startNewForm()" class="btn btn-gold" title="Crear formulario">
                     <svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
-                    Nuevo formulario
+                    Nuevo
                 </button>
             </div>
         </div>
@@ -627,17 +700,21 @@
             <div class="ring">
                 <svg class="ic" viewBox="0 0 24 24" style="width:24px;height:24px;"><path d="M12 5v14M5 12h14"/></svg>
             </div>
-            <h3>Crea tu primer formulario</h3>
-            <p>Puede ser cualquier cosa: clientes, pacientes, pedidos, inventario. Empieza por el dato principal de tu proceso.</p>
-            <div style="display:flex; gap:10px; margin-top: 6px;">
-                <button onclick="startNewForm()" class="btn btn-gold">
-                    <svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
-                    Crear formulario
-                </button>
-                <button onclick="document.getElementById('import-file-input').click()" class="btn btn-ghost-gold">
-                    <svg class="ic" viewBox="0 0 24 24"><path d="M12 21v-11"/><path d="M7.5 13.5 12 9l4.5 4.5"/><path d="M5 3h14"/></svg>
-                    Cargar Excel
-                </button>
+            <h3>Empieza a estructurar datos</h3>
+            <p>Crea tu primer formulario desde cero o elige una plantilla prediseñada para probar al instante:</p>
+            <div class="templates-grid">
+                <div class="template-card" onclick="loadTemplate('obras')">
+                    <span>🏗️ Control de Obras y Compras</span>
+                    <small>Principal + Hijos</small>
+                </div>
+                <div class="template-card" onclick="loadTemplate('inventario')">
+                    <span>📦 Inventario de Bodega</span>
+                    <small>Stock y Artículos</small>
+                </div>
+                <div class="template-card" onclick="loadTemplate('encuesta')">
+                    <span>⭐ Encuesta de Satisfacción</span>
+                    <small>Calificaciones</small>
+                </div>
             </div>
         </div>
 
@@ -756,7 +833,6 @@
             </button>
         </div>
 
-        <!-- Barra de navegación inferior con el botón Volver siempre visible (si hay jerarquía) o Inicio -->
         <div class="action-row">
             <button id="back-parent-btn" onclick="goBackToParent()" class="btn btn-ghost-gold">
                 <svg class="ic" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
@@ -775,6 +851,12 @@
 
 </div>
 
+<!-- Notificación Toast -->
+<div id="toast-notification">
+    <svg class="ic" viewBox="0 0 24 24" style="width:16px;height:16px;"><path d="M20 6 9 17l-5-5"/></svg>
+    <span id="toast-msg">Operación realizada con éxito</span>
+</div>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
     let recordIdCounter = 1;
@@ -787,6 +869,13 @@
     let navStack = [];
     let viewMode = 'table';
     let renderedRecordId = null;
+
+    function showToast(msg) {
+        const toast = document.getElementById('toast-notification');
+        document.getElementById('toast-msg').textContent = msg;
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 2500);
+    }
 
     function findRecordById(formId, recordId) {
         const formObj = getForm(formId);
@@ -886,6 +975,82 @@
         document.getElementById('global-search-results').style.display = 'none';
 
         renderLauncherList();
+    }
+
+    // ============================================================
+    // PLANTILLAS PREDEFINIDAS
+    // ============================================================
+    function loadTemplate(type) {
+        if (type === 'obras') {
+            formsRegistry = [
+                {
+                    id: 1, title: "Obras", pivotFormId: null, pivotField: "",
+                    fields: [
+                        { name: "Nombre Obra", type: "text", required: true },
+                        { name: "Cliente", type: "text", required: false },
+                        { name: "Presupuesto", type: "number", required: false }
+                    ],
+                    data: [
+                        { _id: nextRecordId(), _parentId: null, "Nombre Obra": "Edificio Los Aromos", "Cliente": "Inmobiliaria Sur", "Presupuesto": "450000" },
+                        { _id: nextRecordId(), _parentId: null, "Nombre Obra": "Remodelación Centro", "Cliente": "Municipalidad", "Presupuesto": "85000" }
+                    ]
+                },
+                {
+                    id: 2, title: "Compras", pivotFormId: 1, pivotField: "Nombre Obra",
+                    fields: [
+                        { name: "Ítem / Material", type: "text", required: true },
+                        { name: "Cantidad", type: "number", required: true },
+                        { name: "Costo Total", type: "number", required: false }
+                    ],
+                    data: [
+                        { _id: nextRecordId(), _parentId: 1, "Ítem / Material": "Cemento (sacos)", "Cantidad": "120", "Costo Total": "9600" },
+                        { _id: nextRecordId(), _parentId: 1, "Ítem / Material": "Fierro construcción", "Cantidad": "45", "Costo Total": "15000" }
+                    ]
+                }
+            ];
+        } else if (type === 'inventario') {
+            formsRegistry = [
+                {
+                    id: 1, title: "Bodegas", pivotFormId: null, pivotField: "",
+                    fields: [
+                        { name: "Nombre Bodega", type: "text", required: true },
+                        { name: "Ubicación", type: "text", required: false }
+                    ],
+                    data: [
+                        { _id: nextRecordId(), _parentId: null, "Nombre Bodega": "Bodega Central", "Ubicación": "Sector Norte" }
+                    ]
+                },
+                {
+                    id: 2, title: "Artículos", pivotFormId: 1, pivotField: "Nombre Bodega",
+                    fields: [
+                        { name: "Producto", type: "text", required: true },
+                        { name: "Stock", type: "number", required: true },
+                        { name: "Disponible", type: "checkbox", required: false }
+                    ],
+                    data: [
+                        { _id: nextRecordId(), _parentId: 1, "Producto": "Taladro Percutor", "Stock": "14", "Disponible": true },
+                        { _id: nextRecordId(), _parentId: 1, "Producto": "Casco de seguridad", "Stock": "80", "Disponible": true }
+                    ]
+                }
+            ];
+        } else if (type === 'encuesta') {
+            formsRegistry = [
+                {
+                    id: 1, title: "Evaluaciones", pivotFormId: null, pivotField: "",
+                    fields: [
+                        { name: "Cliente / Usuario", type: "text", required: true },
+                        { name: "Fecha", type: "date", required: false },
+                        { name: "Puntuación (1-5)", type: "number", required: true }
+                    ],
+                    data: [
+                        { _id: nextRecordId(), _parentId: null, "Cliente / Usuario": "Carla Mendoza", "Fecha": "2026-08-25", "Puntuación (1-5)": "5" }
+                    ]
+                }
+            ];
+        }
+        recordIdCounter = 100;
+        showToast("¡Plantilla cargada con éxito!");
+        showLauncher();
     }
 
     function handleGlobalSearch(query) {
@@ -1010,6 +1175,8 @@
 
         const hasExportable = formsRegistry.some(f => f.data.some(r => recordIsExportable(f.id, r)));
         document.getElementById('export-btn').style.display = hasExportable ? 'flex' : 'none';
+        document.getElementById('export-csv-btn').style.display = hasExportable ? 'flex' : 'none';
+        document.getElementById('export-json-btn').style.display = hasExportable ? 'flex' : 'none';
 
         if (formsRegistry.length === 0) {
             emptyState.style.display = 'flex';
@@ -1069,7 +1236,7 @@
             title: "",
             pivotFormId: null,
             pivotField: "",
-            fields: [{ name: "", type: "text" }],
+            fields: [{ name: "", type: "text", required: false }],
             data: []
         });
         editFormStructure(newId, { isNew: true });
@@ -1134,7 +1301,12 @@
                         <option value="checkbox" ${field.type==='checkbox'?'selected':''}>Sí/No</option>
                     </select>
                 </div>
-                ${formObj.fields.length > 1 ? `<button type="button" class="btn btn-danger-outline btn-tiny" onclick="removeBuilderField(${index})" style="align-self:flex-start;">Quitar</button>` : ''}
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <label class="row-options">
+                        <input type="checkbox" class="f-required" ${field.required ? 'checked' : ''}> Obligatorio
+                    </label>
+                    ${formObj.fields.length > 1 ? `<button type="button" class="btn btn-danger-outline btn-tiny" onclick="removeBuilderField(${index})">Quitar campo</button>` : ''}
+                </div>
             `;
             container.appendChild(row);
         });
@@ -1143,7 +1315,7 @@
     function addBuilderField() {
         saveBuilderState();
         const formObj = getForm(editingFormId);
-        formObj.fields.push({ name: "", type: 'text' });
+        formObj.fields.push({ name: "", type: 'text', required: false });
         renderBuilderFields();
     }
 
@@ -1179,9 +1351,11 @@
             container.querySelectorAll('.field-builder-row').forEach((row, index) => {
                 const nameInput = row.querySelector('.f-name');
                 const typeSelect = row.querySelector('.f-type');
+                const requiredCheck = row.querySelector('.f-required');
                 if (formObj.fields[index]) {
                     formObj.fields[index].name = nameInput.value || `Dato ${index + 1}`;
                     formObj.fields[index].type = typeSelect.value;
+                    formObj.fields[index].required = requiredCheck ? requiredCheck.checked : false;
                 }
             });
         }
@@ -1218,6 +1392,7 @@
 
         formsRegistry = formsRegistry.filter(f => !totalFormsToDelete.includes(f.id));
         editingFormId = null;
+        showToast("Formulario eliminado correctamente");
         showLauncher();
     }
 
@@ -1271,7 +1446,6 @@
         document.getElementById('runtime-title').textContent = formObj.title;
         document.getElementById('runtime-depth-dot').style.background = depthColor(getDepth(formObj.id));
 
-        // El botón "Volver" se muestra si hay elementos en el stack, o lleva al inicio si es principal
         const backBtn = document.getElementById('back-parent-btn');
         if (navStack.length > 0) {
             backBtn.style.display = 'flex';
@@ -1334,7 +1508,8 @@
 
         formObj.fields.forEach(f => {
             const val = record[f.name] !== undefined ? record[f.name] : '';
-            html += `<div class="form-field"><label class="field-label">${f.name}</label>`;
+            const reqMark = f.required ? ' <span style="color:var(--danger)">*</span>' : '';
+            html += `<div class="form-field"><label class="field-label">${f.name}${reqMark}</label>`;
             if (f.type === 'checkbox') {
                 html += `<input type="checkbox" class="r-input" data-name="${f.name}" ${val ? 'checked' : ''} style="width:auto;">`;
             } else {
@@ -1437,7 +1612,32 @@
     }
 
     function saveCurrentRecordExplicit() {
+        const formObj = getForm(activeFormId);
+        if (!formObj) return;
+
+        // Validar campos obligatorios antes de guardar
+        if (viewMode === 'record' && renderedRecordId !== null) {
+            const inputs = document.querySelectorAll('#runtime-card .r-input');
+            let missingRequired = false;
+
+            inputs.forEach(input => {
+                const fieldName = input.dataset.name;
+                const fieldDef = formObj.fields.find(f => f.name === fieldName);
+                if (fieldDef && fieldDef.required) {
+                    const val = input.type === 'checkbox' ? input.checked : input.value.trim();
+                    if (!val) missingRequired = true;
+                }
+            });
+
+            if (missingRequired) {
+                alert('Por favor complete todos los campos obligatorios (*) antes de guardar.');
+                return;
+            }
+        }
+
         saveCurrentRuntimeData();
+        showToast("Registro guardado con éxito");
+
         const btn = document.getElementById('save-btn');
         if (!btn) return;
         const original = btn.innerHTML;
@@ -1465,6 +1665,7 @@
             currentRecord[f.name] = f.type === 'checkbox' ? false : '';
         });
         renderRuntime();
+        showToast("Registro limpiado");
     }
 
     function deleteDescendantRecords(formId, recordId) {
@@ -1494,6 +1695,7 @@
         renderedRecordId = null;
         resetDescendantIndices(activeFormId);
         renderRuntime();
+        showToast("Registro eliminado");
     }
 
     function changeRecord(direction) {
@@ -1526,6 +1728,7 @@
         resetDescendantIndices(formObj.id);
         viewMode = 'record';
         renderRuntime();
+        showToast("Nuevo registro creado");
     }
 
     function formToRows(formObj) {
@@ -1595,6 +1798,45 @@
 
         const today = new Date().toISOString().slice(0, 10);
         XLSX.writeFile(wb, `DataForge_export_${today}.xlsx`);
+        showToast("Exportado a Excel correctamente");
+    }
+
+    function exportDataCSV() {
+        const exportableForms = formsRegistry.filter(f => f.data.some(r => recordIsExportable(f.id, r)));
+        if (exportableForms.length === 0) return;
+
+        let csvContent = "";
+        exportableForms.forEach(formObj => {
+            csvContent += `\n--- FORMULARIO: ${formObj.title} ---\n`;
+            const rows = formToRows(formObj);
+            rows.forEach(row => {
+                csvContent += row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(",") + "\n";
+            });
+        });
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", `DataForge_export_${new Date().toISOString().slice(0, 10)}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        showToast("Exportado a CSV correctamente");
+    }
+
+    function exportDataJSON() {
+        const exportableForms = formsRegistry.filter(f => f.data.some(r => recordIsExportable(f.id, r)));
+        if (exportableForms.length === 0) return;
+
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(formsRegistry, null, 2));
+        const downloadAnchor = document.createElement('a');
+        downloadAnchor.setAttribute("href", dataStr);
+        downloadAnchor.setAttribute("download", `DataForge_export_${new Date().toISOString().slice(0, 10)}.json`);
+        document.body.appendChild(downloadAnchor);
+        downloadAnchor.click();
+        downloadAnchor.remove();
+        showToast("Exportado a JSON correctamente");
     }
 
     function importExcelData(event) {
@@ -1632,7 +1874,7 @@
                 }
 
                 rawSheetsData.forEach((sheet) => {
-                    let fields = sheet.rawHeader.map(name => ({ name, type: 'text' }));
+                    let fields = sheet.rawHeader.map(name => ({ name, type: 'text', required: false }));
                     tempForms.push({
                         id: nextId++,
                         title: sheet.title,
@@ -1735,7 +1977,7 @@
                     recordIdCounter = Math.max(...formsRegistry.flatMap(f => f.data.map(r => r._id || 0)), 0) + 1;
                     activeIndexByForm = {};
                     showLauncher();
-                    alert('¡Datos y dependencias de Excel cargados exitosamente!');
+                    showToast("¡Datos importados con éxito!");
                 } else {
                     alert('No se pudieron procesar datos válidos de las hojas.');
                 }
