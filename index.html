@@ -536,6 +536,12 @@
         <div class="brand-row">
             <div class="brand">DataForge<small>CONSTRUCTOR DE DATOS</small></div>
             <div style="display:flex; gap:8px;">
+                <!-- Input oculto para cargar archivos Excel -->
+                <input type="file" id="import-file-input" accept=".xlsx, .xls" style="display:none;" onchange="importExcelData(event)">
+                
+                <button onclick="document.getElementById('import-file-input').click()" class="btn btn-ghost-gold btn-icon-only" title="Cargar desde Excel">
+                    <svg class="ic" viewBox="0 0 24 24"><path d="M12 21v-11"/><path d="M7.5 13.5 12 9l4.5 4.5"/><path d="M5 3h14"/></svg>
+                </button>
                 <button id="export-btn" onclick="exportAllData()" class="btn btn-ghost-gold btn-icon-only" title="Exportar a Excel" style="display:none;">
                     <svg class="ic" viewBox="0 0 24 24"><path d="M12 3v11"/><path d="M7.5 10.5 12 15l4.5-4.5"/><path d="M5 21h14"/></svg>
                 </button>
@@ -552,10 +558,16 @@
             </div>
             <h3>Crea tu primer formulario</h3>
             <p>Puede ser cualquier cosa: clientes, pacientes, pedidos, inventario. Empieza por el dato principal de tu proceso.</p>
-            <button onclick="startNewForm()" class="btn btn-gold">
-                <svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
-                Crear formulario
-            </button>
+            <div style="display:flex; gap:10px; margin-top: 6px;">
+                <button onclick="startNewForm()" class="btn btn-gold">
+                    <svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+                    Crear formulario
+                </button>
+                <button onclick="document.getElementById('import-file-input').click()" class="btn btn-ghost-gold">
+                    <svg class="ic" viewBox="0 0 24 24"><path d="M12 21v-11"/><path d="M7.5 13.5 12 9l4.5 4.5"/><path d="M5 3h14"/></svg>
+                    Cargar Excel
+                </button>
+            </div>
         </div>
 
         <div id="launcher-list" class="app-launcher-grid"></div>
@@ -691,7 +703,7 @@
     let activeFormId = null;
     let editingFormId = null;
     let navStack = [];
-    let viewMode = 'table'; // Por defecto se presenta como tabla
+    let viewMode = 'table';
     let renderedRecordId = null;
 
     function findRecordById(formId, recordId) {
@@ -783,7 +795,7 @@
         navStack = [];
         activeFormId = null;
         renderedRecordId = null;
-        viewMode = 'table'; // Restablecer a tabla por defecto al volver al inicio
+        viewMode = 'table';
         document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
         document.getElementById('screen-launcher').classList.remove('hidden');
         renderLauncherList();
@@ -986,7 +998,7 @@
         }
 
         activeFormId = formId;
-        viewMode = 'table'; // Cada vez que abre un formulario, arranca en vista tabla por defecto
+        viewMode = 'table';
         document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
         document.getElementById('screen-runtime').classList.remove('hidden');
         renderRuntime();
@@ -1121,7 +1133,7 @@
     function selectRecordFromTable(idx) {
         activeIndexByForm[activeFormId] = idx;
         resetDescendantIndices(activeFormId);
-        viewMode = 'record'; // Al hacer clic en un registro de la tabla, abre su vista de formulario detallado opcional
+        viewMode = 'record';
         renderRuntime();
     }
 
@@ -1263,7 +1275,7 @@
         const list = getVisibleRecords(formObj.id);
         activeIndexByForm[formObj.id] = list.length - 1;
         resetDescendantIndices(formObj.id);
-        viewMode = 'record'; // Al añadir uno nuevo, cambia a formulario para ingresarlo cómodamente
+        viewMode = 'record';
         renderRuntime();
     }
 
@@ -1334,6 +1346,121 @@
 
         const today = new Date().toISOString().slice(0, 10);
         XLSX.writeFile(wb, `DataForge_export_${today}.xlsx`);
+    }
+
+    // ============================================================
+    // IMPORTAR DATOS DESDE EXCEL (.XLSX)
+    // Lee cada hoja del archivo como un formulario. La primera fila
+    // define los nombres de los campos. Si una hoja hija incluye una
+    // columna referenciando al padre, intenta asociar los registros.
+    // ============================================================
+
+    function importExcelData(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+
+                let newFormsRegistry = [];
+                let nextId = 1;
+
+                workbook.SheetNames.forEach((sheetName) => {
+                    const worksheet = workbook.Sheets[sheetName];
+                    const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+                    if (rows.length === 0) return;
+
+                    let rawHeader = rows[0].map(h => String(h || '').trim()).filter(h => h !== '');
+                    if (rawHeader.length === 0) return;
+
+                    // Detectar si la primera columna es una relación con el padre (Ej: "Obra (Nombre Obra)")
+                    let pivotFormId = null;
+                    let pivotField = "";
+                    let fieldNames = [...rawHeader];
+
+                    const parentCandidateMatch = rawHeader[0].match(/^(.*?)\s*\((.*?)\)$/);
+                    if (parentCandidateMatch && newFormsRegistry.length > 0) {
+                        const parentTitle = parentCandidateMatch[1].trim();
+                        const parentFieldCandidate = parentCandidateMatch[2].trim();
+                        const foundParent = newFormsRegistry.find(f => f.title.toLowerCase() === parentTitle.toLowerCase());
+                        if (foundParent) {
+                            pivotFormId = foundParent.id;
+                            pivotField = parentFieldCandidate;
+                            fieldNames.shift(); // Quitamos la columna de referencia auxiliar del padre
+                        }
+                    }
+
+                    if (fieldNames.length === 0) fieldNames = ['Dato 1'];
+
+                    const fields = fieldNames.map(name => ({ name, type: 'text' }));
+                    const formRecords = [];
+
+                    // Procesar filas de datos
+                    for (let i = 1; i < rows.length; i++) {
+                        const rowVals = rows[i];
+                        if (!rowVals || rowVals.length === 0) continue;
+
+                        const rec = { _id: nextRecordId(), _parentId: null };
+                        let colOffset = pivotFormId !== null ? 1 : 0;
+
+                        if (pivotFormId !== null) {
+                            const parentTitleVal = String(rowVals[0] || '').trim();
+                            const parentFormObj = getForm(pivotFormId) || newFormsRegistry.find(f => f.id === pivotFormId);
+                            if (parentFormObj) {
+                                const matchedParent = parentFormObj.data.find(pr => String(pr[pivotField] || '').trim() === parentTitleVal);
+                                if (matchedParent) {
+                                    rec._parentId = matchedParent._id;
+                                }
+                            }
+                        }
+
+                        let hasAnyVal = false;
+                        fields.forEach((f, fIdx) => {
+                            const val = rowVals[fIdx + colOffset];
+                            if (val !== undefined && val !== null && String(val).trim() !== '') {
+                                rec[f.name] = String(val);
+                                hasAnyVal = true;
+                            } else {
+                                rec[f.name] = '';
+                            }
+                        });
+
+                        if (hasAnyVal) {
+                            formRecords.push(rec);
+                        }
+                    }
+
+                    newFormsRegistry.push({
+                        id: nextId++,
+                        title: sheetName,
+                        pivotFormId: pivotFormId,
+                        pivotField: pivotField,
+                        fields: fields,
+                        data: formRecords
+                    });
+                });
+
+                if (newFormsRegistry.length > 0) {
+                    formsRegistry = newFormsRegistry;
+                    recordIdCounter = Math.max(...formsRegistry.flatMap(f => f.data.map(r => r._id || 0)), 0) + 1;
+                    activeIndexByForm = {};
+                    showLauncher();
+                    alert('¡Archivo de Excel cargado con éxito!');
+                } else {
+                    alert('No se encontraron datos válidos en el archivo Excel.');
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Ocurrió un error al procesar el archivo Excel. Asegúrate de que sea un formato válido.');
+            } finally {
+                event.target.value = ''; // Resetear input file
+            }
+        };
+        reader.readAsArrayBuffer(file);
     }
 
     showLauncher();
