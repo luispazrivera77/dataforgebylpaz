@@ -1071,7 +1071,6 @@
         if (!form.pivotFormId) return form.data;
         const parentRecord = getActiveRecord(form.pivotFormId);
         if (!parentRecord) return [];
-        // Filtro estricto: solo los registros hijos cuyo _parentId coincida exactamente con el id del padre actual
         return form.data.filter(r => r._parentId === parentRecord._id);
     }
 
@@ -1378,26 +1377,38 @@
             formObj.pivotFormId = newPivotId;
             formObj.pivotField = parts[1];
 
-            // Asignación inteligente: si los registros no tienen _parentId correcto, revisamos si algún campo del hijo contiene el nombre del padre
+            // Asignación estricta y limpia: evaluamos cada registro hijo contra los padres buscando la mejor puntuación de coincidencia exacta por palabra
             const parentForm = getForm(newPivotId);
             if (parentForm && parentForm.data.length > 0) {
                 formObj.data.forEach(r => {
-                    let matchedParentId = null;
-                    // Buscar coincidencia en los campos del registro hijo con los valores del padre
-                    for (let key in r) {
-                        if (key.startsWith('_')) continue;
-                        const valStr = String(r[key] || '').toLowerCase();
-                        const matchingParent = parentForm.data.find(p => {
-                            const pVal = String(p[formObj.pivotField] || '').toLowerCase();
-                            return pVal && (valStr.includes(pVal) || pVal.includes(valStr));
-                        });
-                        if (matchingParent) {
-                            matchedParentId = matchingParent._id;
-                            break;
+                    let bestMatchParentId = null;
+                    let highestScore = 0;
+
+                    parentForm.data.forEach(p => {
+                        const pVal = String(p[formObj.pivotField] || '').trim().toLowerCase();
+                        if (!pVal) return;
+
+                        let score = 0;
+                        for (let key in r) {
+                            if (key.startsWith('_')) continue;
+                            const rVal = String(r[key] || '').trim().toLowerCase();
+                            if (!rVal) continue;
+
+                            if (rVal === pVal) {
+                                score += 100; // Coincidencia exacta total del campo
+                            } else if (rVal.includes(pVal) || pVal.includes(rVal)) {
+                                score += 50;  // Coincidencia parcial robusta
+                            }
                         }
-                    }
-                    // Si no hubo coincidencia de texto, asignamos al primer padre por defecto
-                    r._parentId = matchedParentId !== null ? matchedParentId : parentForm.data[0]._id;
+
+                        if (score > highestScore) {
+                            highestScore = score;
+                            bestMatchParentId = p._id;
+                        }
+                    });
+
+                    // Si no hubo ninguna coincidencia clara, por defecto se asigna al primer padre para evitar huérfanos sin filtro
+                    r._parentId = bestMatchParentId !== null ? bestMatchParentId : parentForm.data[0]._id;
                 });
             }
         } else {
