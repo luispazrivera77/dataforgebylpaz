@@ -670,6 +670,11 @@
             <div style="display:flex; gap:6px;">
                 <input type="file" id="import-file-input" accept=".xlsx, .xls" style="display:none;" onchange="importExcelData(event)">
                 
+                <!-- Botón de Reiniciar App -->
+                <button onclick="resetAppCompletely()" class="btn btn-ghost-gold btn-icon-only" title="Reiniciar aplicación (Borrar todo)">
+                    <svg class="ic" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                </button>
+
                 <button onclick="document.getElementById('import-file-input').click()" class="btn btn-ghost-gold btn-icon-only" title="Cargar desde Excel">
                     <svg class="ic" viewBox="0 0 24 24"><path d="M12 21v-11"/><path d="M7.5 13.5 12 9l4.5 4.5"/><path d="M5 3h14"/></svg>
                 </button>
@@ -975,6 +980,21 @@
         document.getElementById('global-search-results').style.display = 'none';
 
         renderLauncherList();
+    }
+
+    // ============================================================
+    // REINICIO COMPLETO DE LA APLICACIÓN
+    // ============================================================
+    function resetAppCompletely() {
+        if (!confirm('¿Estás seguro de reiniciar la aplicación? Se borrarán todos los formularios y registros actuales para volver al principio.')) return;
+        formsRegistry = [];
+        activeIndexByForm = {};
+        activeFormId = null;
+        editingFormId = null;
+        navStack = [];
+        recordIdCounter = 1;
+        showToast("Aplicación reiniciada");
+        showLauncher();
     }
 
     // ============================================================
@@ -1615,7 +1635,6 @@
         const formObj = getForm(activeFormId);
         if (!formObj) return;
 
-        // Validar campos obligatorios antes de guardar
         if (viewMode === 'record' && renderedRecordId !== null) {
             const inputs = document.querySelectorAll('#runtime-card .r-input');
             let missingRequired = false;
