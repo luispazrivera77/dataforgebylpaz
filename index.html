@@ -94,7 +94,7 @@
         display: flex;
         align-items: baseline;
         justify-content: space-between;
-        margin-bottom: 24px;
+        margin-bottom: 20px;
         border-bottom: 1px solid var(--border);
         padding-bottom: 16px;
     }
@@ -161,6 +161,70 @@
         background: var(--surface-2);
     }
     input::placeholder { color: var(--text-faint); }
+
+    .search-box-wrap {
+        position: relative;
+        margin-bottom: 16px;
+    }
+
+    .search-box-wrap input {
+        padding-left: 38px;
+        font-size: 13.5px;
+    }
+
+    .search-box-wrap svg {
+        position: absolute;
+        left: 13px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-dim);
+        width: 16px;
+        height: 16px;
+    }
+
+    .global-search-results {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 16px;
+        max-height: 240px;
+        overflow-y: auto;
+    }
+
+    .search-result-item {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 10px 14px;
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        transition: 0.2s;
+    }
+
+    .search-result-item:hover {
+        border-color: var(--border-gold);
+        background: var(--surface-hover);
+        transform: translateY(-1px);
+    }
+
+    .search-result-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-family: var(--font-mono);
+        font-size: 10.5px;
+        color: var(--gold);
+    }
+
+    .search-result-match {
+        font-size: 13px;
+        color: var(--text);
+        font-weight: 500;
+    }
+
+    .search-result-match strong { color: var(--gold); }
 
     .builder-container {
         display: flex;
@@ -552,6 +616,15 @@
             </div>
         </div>
 
+        <!-- Buscador Global Avanzado -->
+        <div class="search-box-wrap" id="global-search-container">
+            <svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            <input type="text" id="global-search-input" placeholder="Buscar en cualquier campo o formulario..." oninput="handleGlobalSearch(this.value)">
+        </div>
+
+        <!-- Resultados de búsqueda global -->
+        <div id="global-search-results" class="global-search-results" style="display:none;"></div>
+
         <div id="launcher-empty" class="empty-state" style="display:none;">
             <div class="ring">
                 <svg class="ic" viewBox="0 0 24 24" style="width:24px;height:24px;"><path d="M12 5v14M5 12h14"/></svg>
@@ -603,7 +676,6 @@
 
         <div class="gold-divider"></div>
 
-        <!-- Botones de acción del diseñador (Agregar campo, Cancelar y Guardar) -->
         <div style="display: flex; gap: 10px; margin-top: 4px;">
             <button type="button" onclick="addBuilderField()" class="btn btn-ghost-gold" style="flex: 1;">
                 <svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
@@ -617,7 +689,6 @@
             </button>
         </div>
 
-        <!-- Botón destacado y claramente visible para eliminar el formulario completo -->
         <div style="margin-top: 12px; display: flex;">
             <button type="button" onclick="deleteEntireForm()" class="btn btn-danger-outline" style="width: 100%;">
                 <svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5l5 5M14.5 9.5l-5 5"/></svg>
@@ -810,7 +881,135 @@
         viewMode = 'table';
         document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
         document.getElementById('screen-launcher').classList.remove('hidden');
+        
+        // Limpiar buscador al volver
+        const searchInput = document.getElementById('global-search-input');
+        if (searchInput) searchInput.value = '';
+        document.getElementById('global-search-results').style.display = 'none';
+
         renderLauncherList();
+    }
+
+    // ============================================================
+    // BUSCADOR GLOBAL EN CUALQUIER CAMPO O FORMULARIO
+    // ============================================================
+    function handleGlobalSearch(query) {
+        const resultsContainer = document.getElementById('global-search-results');
+        const launcherList = document.getElementById('launcher-list');
+        const cleanQuery = query.trim().toLowerCase();
+
+        if (!cleanQuery) {
+            resultsContainer.style.display = 'none';
+            resultsContainer.innerHTML = '';
+            launcherList.style.display = 'flex';
+            return;
+        }
+
+        launcherList.style.display = 'none';
+        resultsContainer.style.display = 'flex';
+        resultsContainer.innerHTML = '';
+
+        let hits = [];
+
+        formsRegistry.forEach(form => {
+            form.data.forEach(record => {
+                if (!recordHasData(form, record)) return;
+
+                form.fields.forEach(field => {
+                    const val = String(record[field.name] || '').trim();
+                    if (val.toLowerCase().includes(cleanQuery)) {
+                        hits.push({
+                            formId: form.id,
+                            formTitle: form.title,
+                            recordId: record._id,
+                            fieldName: field.name,
+                            fieldValue: val
+                        });
+                    }
+                });
+            });
+        });
+
+        if (hits.length === 0) {
+            resultsContainer.innerHTML = `
+                <div style="text-align:center; padding: 20px; color: var(--text-dim); font-size: 13px;">
+                    No se encontraron coincidencias para "<strong>${query}</strong>"
+                </div>`;
+            return;
+        }
+
+        hits.slice(0, 15).forEach(hit => {
+            const item = document.createElement('div');
+            item.className = 'search-result-item';
+            item.innerHTML = `
+                <div class="search-result-header">
+                    <span>📁 ${hit.formTitle}</span>
+                    <span>${hit.fieldName}</span>
+                </div>
+                <div class="search-result-match">
+                    <strong>${hit.fieldValue}</strong>
+                </div>
+            `;
+
+            item.onclick = () => jumpToRecordDirectly(hit.formId, hit.recordId);
+            resultsContainer.appendChild(item);
+        });
+    }
+
+    function jumpToRecordDirectly(targetFormId, targetRecordId) {
+        const targetForm = getForm(targetFormId);
+        if (!targetForm) return;
+
+        saveCurrentRuntimeData();
+        navStack = [];
+
+        // Reconstruir la ruta de ancestros (padres/abuelos) para la navegación dependiente
+        let curr = targetForm;
+        let parentsPath = [];
+        let currentRecId = targetRecordId;
+
+        while (curr && curr.pivotFormId) {
+            parentsPath.unshift(curr.pivotFormId);
+            const parentForm = getForm(curr.pivotFormId);
+            const recObj = parentForm.data.find(r => r._id === currentRecId || r._id === (targetForm.data.find(tr => tr._id === currentRecId)?._parentId));
+            if (recObj) {
+                currentRecId = recObj._parentId;
+            }
+            curr = parentForm;
+        }
+
+        navStack = parentsPath;
+
+        // Establecer la ruta de ancestros de registros activos (para que los hijos dependientes apunten al padre correcto)
+        let chainForms = [...parentsPath, targetFormId];
+        for (let i = 0; i < chainForms.length - 1; i++) {
+            let fId = chainForms[i];
+            let nextFId = chainForms[i+1];
+            let nextFormObj = getForm(nextFId);
+            
+            // Hallar qué registro hijo corresponde al padre actual
+            let parentActiveRec = getActiveRecord(fId);
+            if (parentActiveRec) {
+                let childRecords = nextFormObj.data.filter(r => r._parentId === parentActiveRec._id);
+                let foundIndex = childRecords.findIndex(r => r._id === targetRecordId || (i === chainForms.length - 2 && r._parentId === parentActiveRec._id));
+                if (foundIndex !== -1) {
+                    activeIndexByForm[nextFId] = foundIndex;
+                }
+            }
+        }
+
+        // Posicionar el índice del registro de destino exacto
+        let visibleList = getVisibleRecords(targetFormId);
+        let targetIdx = visibleList.findIndex(r => r._id === targetRecordId);
+        if (targetIdx !== -1) {
+            activeIndexByForm[targetFormId] = targetIdx;
+        }
+
+        activeFormId = targetFormId;
+        viewMode = 'record'; // Abrir directamente en modo tarjeta/detalle del registro encontrado
+        document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+        document.getElementById('screen-runtime').classList.remove('hidden');
+        renderRuntime();
     }
 
     function renderLauncherList() {
