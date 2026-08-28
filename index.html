@@ -815,20 +815,17 @@
         emptyState.style.display = 'none';
 
         formsRegistry.forEach((form) => {
-            const isRoot = !form.pivotFormId;
             const depth = getDepth(form.id);
             const stack = hasDescendants(form.id);
 
             const card = document.createElement('div');
             card.className = `app-icon-card ${stack ? 'has-stack' : ''}`;
 
-            const iconSvg = isRoot
-                ? `<svg class="ic" viewBox="0 0 24 24" style="width:16px;height:16px;color:var(--gold);"><path d="M5 12h14M12 5l7 7-7 7"/></svg>`
-                : `<svg class="ic" viewBox="0 0 24 24" style="width:16px;height:16px;color:var(--text-dim);"><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>`;
+            const iconSvg = `<svg class="ic" viewBox="0 0 24 24" style="width:16px;height:16px;color:var(--gold);"><path d="M5 12h14M12 5l7 7-7 7"/></svg>`;
 
-            const metaText = isRoot
+            const metaText = !form.pivotFormId
                 ? `${countFilledRecords(form, form.data)} registro${countFilledRecords(form, form.data) === 1 ? '' : 's'}`
-                : `parte de <strong>${getForm(form.pivotFormId).title}</strong>`;
+                : `depende de <strong>${getForm(form.pivotFormId).title}</strong>`;
 
             card.innerHTML = `
                 <span class="depth-dot" style="background:${depthColor(depth)};"></span>
@@ -839,12 +836,26 @@
                 ${iconSvg}
             `;
 
+            // MODIFICACIÓN: Al hacer clic en CUALQUIER formulario de la lista (principal o dependiente), 
+            // se abre directamente construyendo la ruta de ancestros (navStack) automáticamente.
             card.onclick = () => {
-                if (isRoot) {
-                    launchForm(form.id, { fromLauncher: true });
-                } else {
-                    editFormStructure(form.id);
+                saveCurrentRuntimeData();
+                navStack = [];
+                
+                // Reconstruir la ruta hacia atrás (padre, abuelo, etc.) para que el botón "Volver" y el breadcrumb funcionen perfecto
+                let curr = form;
+                let parentsPath = [];
+                while (curr && curr.pivotFormId) {
+                    parentsPath.unshift(curr.pivotFormId);
+                    curr = getForm(curr.pivotFormId);
                 }
+                navStack = parentsPath;
+
+                activeFormId = form.id;
+                viewMode = 'table';
+                document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+                document.getElementById('screen-runtime').classList.remove('hidden');
+                renderRuntime();
             };
 
             listContainer.appendChild(card);
@@ -1347,10 +1358,6 @@
         XLSX.writeFile(wb, `DataForge_export_${today}.xlsx`);
     }
 
-    // ============================================================
-    // IMPORTACIÓN INTELIGENTE CON VINCULACIÓN PROFUNDA DE DATOS
-    // ============================================================
-
     function importExcelData(event) {
         const file = event.target.files[0];
         if (!file) return;
@@ -1365,7 +1372,6 @@
                 let nextId = 1;
                 let rawSheetsData = [];
 
-                // 1. Leer hojas y extraer filas brutas
                 workbook.SheetNames.forEach((sheetName) => {
                     const worksheet = workbook.Sheets[sheetName];
                     const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
@@ -1386,7 +1392,6 @@
                     return;
                 }
 
-                // 2. Crear las estructuras base de formularios
                 rawSheetsData.forEach((sheet) => {
                     let fields = sheet.rawHeader.map(name => ({ name, type: 'text' }));
                     tempForms.push({
@@ -1400,7 +1405,6 @@
                     });
                 });
 
-                // 3. Poblar registros independientes primero
                 tempForms.forEach((formObj) => {
                     formObj.rawRows.forEach((rowVals) => {
                         if (!rowVals || rowVals.length === 0) return;
@@ -1423,13 +1427,8 @@
                     });
                 });
 
-                // 4. Detección automática y robusta de relaciones jerárquicas (Pivotes)
-                // Analizamos las hojas de atrás hacia adelante (o desde la segunda en adelante)
                 for (let i = 1; i < tempForms.length; i++) {
                     let childForm = tempForms[i];
-
-                    // Buscamos cuál de los formularios anteriores (potencial padre) tiene valores 
-                    // que coincidan con alguna columna de este formulario hijo.
                     let bestParentForm = null;
                     let bestParentField = null;
                     let matchingColIndex = -1;
@@ -1438,21 +1437,18 @@
                         let parentForm = tempForms[p];
                         if (parentForm.data.length === 0) continue;
 
-                        // Revisar cada columna del hijo para ver si sus valores coinciden con campos del padre
                         childForm.fields.forEach((childField, cIdx) => {
                             let matchCount = 0;
                             childForm.data.forEach(childRec => {
                                 let val = String(childRec[childField.name] || '').trim().toLowerCase();
                                 if (!val) return;
                                 
-                                // Comprobar si este valor existe en los registros del padre
                                 let foundInParent = parentForm.data.some(parentRec => 
                                     Object.values(parentRec).some(pv => String(pv || '').trim().toLowerCase() === val)
                                 );
                                 if (foundInParent) matchCount++;
                             });
 
-                            // Si hay una coincidencia significativa de datos, este es el campo pivote/relación
                             if (matchCount > 0 && matchCount >= Math.min(2, childForm.data.length)) {
                                 bestParentForm = parentForm;
                                 bestParentField = parentForm.fields[0].name;
@@ -1463,12 +1459,9 @@
                         if (bestParentForm) break;
                     }
 
-                    // Si no se encontró por coincidencia de datos pero los nombres de las columnas o jerarquía lo sugieren, 
-                    // usar el formulario inmediatamente anterior como padre.
                     if (!bestParentForm && i > 0) {
                         bestParentForm = tempForms[i - 1];
                         bestParentField = bestParentForm.fields[0].name;
-                        // Asumimos la primera columna como la de enlace
                         matchingColIndex = 0;
                     }
 
@@ -1476,7 +1469,6 @@
                         childForm.pivotFormId = bestParentForm.id;
                         childForm.pivotField = bestParentField;
 
-                        // Vincular cada registro hijo al _id correcto del padre usando el valor de la columna de enlace
                         childForm.data.forEach(childRec => {
                             if (matchingColIndex >= 0 && childForm.fields[matchingColIndex]) {
                                 let searchKey = String(childRec[childForm.fields[matchingColIndex].name] || '').trim().toLowerCase();
@@ -1490,18 +1482,13 @@
                                 }
                             }
                             
-                            // Si aún no tiene _parentId asignado, asignarlo al primer registro del padre como respaldo
                             if (!childRec._parentId && bestParentForm.data.length > 0) {
                                 childRec._parentId = bestParentForm.data[0]._id;
                             }
                         });
-
-                        // Opcional: si la columna de enlace es redundante porque ya está el enlace lógico, se puede conservar o quitar. 
-                        // Se deja intacta para que el usuario la vea en los datos tabulares.
                     }
                 }
 
-                // Limpieza final de propiedades temporales
                 tempForms.forEach(f => delete f.rawRows);
 
                 if (tempForms.length > 0) {
