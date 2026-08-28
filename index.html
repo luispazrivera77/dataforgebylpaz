@@ -27,7 +27,6 @@
         --danger: #e2685f;
         --success: #4fb08a;
 
-        /* escala de profundidad: raíz, hijo, nieto, bisnieto... (cíclica) */
         --depth-0: #4fb3ac;
         --depth-1: #d9a653;
         --depth-2: #c97fa0;
@@ -50,14 +49,13 @@
         justify-content: center;
         align-items: center;
         overflow-x: hidden;
-        /* Sutiles líneas doradas ambientales de fondo */
         background-image: 
             linear-gradient(to right, rgba(217, 166, 83, 0.03) 1px, transparent 1px),
             linear-gradient(to bottom, rgba(217, 166, 83, 0.03) 1px, transparent 1px);
         background-size: 40px 40px;
     }
 
-    /* Contenedor minimalista web (reemplaza por completo el marco de celular) */
+    /* Contenedor minimalista web */
     .app-container {
         width: 100%;
         max-width: 680px;
@@ -218,12 +216,9 @@
     .btn-danger-solid { background: var(--danger); border: none; color: #1a0504; font-weight: 600; }
     .btn-danger-solid:hover { background: #ea8078; }
     .btn-tiny { padding: 6px 12px; font-size: 11px; border-radius: 8px; }
-    .btn-full { width: 100%; }
-    .btn-row { display: flex; gap: 8px; }
 
     svg.ic { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
 
-    /* ---------- Empty state ---------- */
     .empty-state {
         flex: 1;
         display: flex;
@@ -262,7 +257,6 @@
         line-height: 1.6;
     }
 
-    /* ---------- Launcher cards ---------- */
     .app-launcher-grid {
         display: flex;
         flex-direction: column;
@@ -296,7 +290,6 @@
 
     .app-icon-card.has-stack::before { opacity: 0.5; }
     .app-icon-card > * { position: relative; z-index: 1; }
-
     .app-icon-card:hover { border-color: var(--border-gold); background: var(--surface-hover); transform: translateY(-1px); }
 
     .depth-dot {
@@ -312,7 +305,6 @@
     .app-meta { font-family: var(--font-mono); font-size: 10px; color: var(--text-dim); letter-spacing: 0.04em; }
     .app-meta strong { color: var(--gold); }
 
-    /* ---------- Runtime ---------- */
     .breadcrumb {
         font-family: var(--font-mono);
         font-size: 11px;
@@ -356,9 +348,8 @@
         border-left: 3px solid var(--gold);
         margin-bottom: 16px;
         line-height: 1.5;
-        border-top: 1px solid var(--border);
-        border-right: 1px solid var(--border);
-        border-bottom: 1px solid var(--border);
+        border: 1px solid var(--border);
+        border-left-width: 3px;
     }
 
     .context-banner strong { color: var(--gold); font-weight: 600; }
@@ -445,7 +436,6 @@
         color: #03140f !important;
     }
 
-    /* ---------- Toggle vista tabla ---------- */
     .view-toggle {
         display: flex;
         align-items: center;
@@ -471,7 +461,6 @@
 
     .view-toggle-opt.active { background: var(--gold); color: #0a0d14; font-weight: 600; box-shadow: 0 0 10px rgba(217, 166, 83, 0.3); }
 
-    /* ---------- Tabla de registros ---------- */
     .table-wrap {
         overflow-x: auto;
         border: 1px solid var(--border);
@@ -532,7 +521,6 @@
         letter-spacing: 0.05em;
     }
 
-    /* Líneas decorativas doradas refinadas */
     .gold-divider {
         height: 1px;
         background: linear-gradient(90deg, transparent, var(--border-gold), transparent);
@@ -696,10 +684,6 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
-    // ============================================================
-    // MODELO DE DATOS
-    // ============================================================
-
     let recordIdCounter = 1;
     function nextRecordId() { return recordIdCounter++; }
 
@@ -708,8 +692,7 @@
     let activeFormId = null;
     let editingFormId = null;
     let navStack = [];
-    let viewMode = 'record'; // 'record' | 'table'
-
+    let viewMode = 'record';
     let renderedRecordId = null;
 
     function findRecordById(formId, recordId) {
@@ -735,10 +718,7 @@
     }
 
     function depthColor(depth) { return DEPTH_COLORS[depth % DEPTH_COLORS.length]; }
-
-    function hasDescendants(formId) {
-        return getChildForms(formId).length > 0;
-    }
+    function hasDescendants(formId) { return getChildForms(formId).length > 0; }
 
     function recordHasData(formObj, record) {
         return formObj.fields.some(f => {
@@ -758,10 +738,6 @@
             child.data.some(r => r._parentId === record._id && recordIsExportable(child.id, r))
         );
     }
-
-    // ============================================================
-    // RESOLUCIÓN JERÁRQUICA
-    // ============================================================
 
     function getVisibleRecords(formId) {
         const form = getForm(formId);
@@ -802,10 +778,6 @@
             resetDescendantIndices(child.id);
         });
     }
-
-    // ============================================================
-    // LANZADOR
-    // ============================================================
 
     function showLauncher() {
         saveCurrentRuntimeData();
@@ -881,10 +853,6 @@
         });
         editFormStructure(newId, { isNew: true });
     }
-
-    // ============================================================
-    // DISEÑADOR
-    // ============================================================
 
     function editFormStructure(formId, opts) {
         opts = opts || {};
@@ -1007,10 +975,6 @@
         saveCurrentRuntimeData();
         editFormStructure(activeFormId);
     }
-
-    // ============================================================
-    // RUNTIME
-    // ============================================================
 
     function launchForm(formId, opts) {
         opts = opts || {};
@@ -1308,10 +1272,6 @@
         viewMode = 'record';
         renderRuntime();
     }
-
-    // ============================================================
-    // EXPORTAR DATOS
-    // ============================================================
 
     function formToRows(formObj) {
         const records = formObj.data.filter(r => recordIsExportable(formObj.id, r));
