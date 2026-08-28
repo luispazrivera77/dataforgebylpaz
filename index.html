@@ -1071,7 +1071,7 @@
         if (!form.pivotFormId) return form.data;
         const parentRecord = getActiveRecord(form.pivotFormId);
         if (!parentRecord) return [];
-        return form.data.filter(r => r._parentId === parentRecord._id);
+        return form.data.filter(r => r._parentId === parentRecord._id || r._parentId === undefined || r._parentId === null);
     }
 
     function getActiveRecord(formId) {
@@ -1082,8 +1082,7 @@
             let parentId = null;
             if (form.pivotFormId) {
                 const parentRec = getActiveRecord(form.pivotFormId);
-                if (!parentRec) return null;
-                parentId = parentRec._id;
+                parentId = parentRec ? parentRec._id : null;
             }
             const rec = { _id: nextRecordId(), _parentId: parentId };
             form.data.push(rec);
@@ -1374,11 +1373,22 @@
         const pivotSelect = document.getElementById('form-pivot-source');
         if (pivotSelect && pivotSelect.value) {
             const parts = pivotSelect.value.split('::');
-            formObj.pivotFormId = parseInt(parts[0]);
+            const newPivotId = parseInt(parts[0]);
+            formObj.pivotFormId = newPivotId;
             formObj.pivotField = parts[1];
+
+            // Asignar un _parentId por defecto a los registros existentes que no lo tengan
+            const parentForm = getForm(newPivotId);
+            const defaultParentId = parentForm && parentForm.data.length > 0 ? parentForm.data[0]._id : null;
+            formObj.data.forEach(r => {
+                if (r._parentId === undefined || r._parentId === null) {
+                    r._parentId = defaultParentId;
+                }
+            });
         } else {
             formObj.pivotFormId = null;
             formObj.pivotField = "";
+            formObj.data.forEach(r => { r._parentId = null; });
         }
 
         document.querySelectorAll('.field-builder-row').forEach((row, index) => {
@@ -1561,7 +1571,7 @@
         list.innerHTML = '';
 
         children.forEach(child => {
-            const childRecords = child.data.filter(r => r._parentId === currentRecord._id);
+            const childRecords = child.data.filter(r => r._parentId === currentRecord._id || r._parentId === undefined || r._parentId === null);
             const count = countFilledRecords(child, childRecords);
             const row = document.createElement('div');
             row.className = 'thread-item';
