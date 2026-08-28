@@ -212,6 +212,7 @@
     .btn-ghost-gold:hover { background: var(--gold-soft); border-color: var(--gold); }
     .btn-success { background: var(--success); border: none; color: #03140f; font-weight: 600; }
     .btn-danger-outline { color: var(--danger); border-color: rgba(226,104,95,0.3); }
+    .btn-danger-outline:hover { background: rgba(226,104,95,0.1); }
     .btn-danger-solid { background: var(--danger); border: none; color: #1a0504; font-weight: 600; }
     .btn-danger-solid:hover { background: #ea8078; }
     .btn-tiny { padding: 6px 12px; font-size: 11px; border-radius: 8px; }
@@ -602,13 +603,25 @@
 
         <div class="gold-divider"></div>
 
+        <!-- Botones de acción del diseñador (Agregar campo, Cancelar y Guardar) -->
         <div style="display: flex; gap: 10px; margin-top: 4px;">
             <button type="button" onclick="addBuilderField()" class="btn btn-ghost-gold" style="flex: 1;">
                 <svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
                 Agregar campo
             </button>
+            <button type="button" onclick="showLauncher()" class="btn" style="flex: 1;">
+                Cancelar
+            </button>
             <button type="button" onclick="saveAndReturnLauncher()" class="btn btn-success" style="flex: 1;">
                 Guardar formulario
+            </button>
+        </div>
+
+        <!-- Botón destacado y claramente visible para eliminar el formulario completo -->
+        <div style="margin-top: 12px; display: flex;">
+            <button type="button" onclick="deleteEntireForm()" class="btn btn-danger-outline" style="width: 100%;">
+                <svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5l5 5M14.5 9.5l-5 5"/></svg>
+                Eliminar formulario completo
             </button>
         </div>
     </section>
@@ -836,13 +849,10 @@
                 ${iconSvg}
             `;
 
-            // MODIFICACIÓN: Al hacer clic en CUALQUIER formulario de la lista (principal o dependiente), 
-            // se abre directamente construyendo la ruta de ancestros (navStack) automáticamente.
             card.onclick = () => {
                 saveCurrentRuntimeData();
                 navStack = [];
                 
-                // Reconstruir la ruta hacia atrás (padre, abuelo, etc.) para que el botón "Volver" y el breadcrumb funcionen perfecto
                 let curr = form;
                 let parentsPath = [];
                 while (curr && curr.pivotFormId) {
@@ -989,6 +999,35 @@
 
     function saveAndReturnLauncher() {
         saveBuilderState();
+        showLauncher();
+    }
+
+    function deleteEntireForm() {
+        if (!editingFormId) return;
+        const formObj = getForm(editingFormId);
+        if (!formObj) return;
+
+        function getAllSubFormIds(parentId) {
+            let ids = [];
+            let children = formsRegistry.filter(f => f.pivotFormId === parentId);
+            children.forEach(child => {
+                ids.push(child.id);
+                ids = ids.concat(getAllSubFormIds(child.id));
+            });
+            return ids;
+        }
+
+        const subFormIds = getAllSubFormIds(formObj.id);
+        const totalFormsToDelete = [formObj.id, ...subFormIds];
+
+        const warningMsg = totalFormsToDelete.length > 1
+            ? `¿Estás seguro de eliminar el formulario "${formObj.title}" y sus ${subFormIds.length} formularios dependientes asociados? Esta acción borrará toda su estructura y datos permanentemente.`
+            : `¿Estás seguro de eliminar el formulario "${formObj.title}"? Esta acción no se puede deshacer.`;
+
+        if (!confirm(warningMsg)) return;
+
+        formsRegistry = formsRegistry.filter(f => !totalFormsToDelete.includes(f.id));
+        editingFormId = null;
         showLauncher();
     }
 
