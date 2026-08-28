@@ -1071,21 +1071,8 @@
         if (!form.pivotFormId) return form.data;
         const parentRecord = getActiveRecord(form.pivotFormId);
         if (!parentRecord) return [];
-        
-        // Filtro ultra-flexible y seguro: 
-        // 1. Si el registro hijo tiene un _parentId exacto que coincide con el padre actual, se muestra.
-        // 2. Si el registro no tiene _parentId (es decir, viene de importación suelta), se muestra de forma segura 
-        //    en el primer padre para evitar que se pierdan o queden en "0 registros".
-        return form.data.filter(r => {
-            if (r._parentId === parentRecord._id) return true;
-            if ((r._parentId === null || r._parentId === undefined || r._parentId === '') && form.pivotFormId) {
-                const parentForm = getForm(form.pivotFormId);
-                if (parentForm && parentForm.data.length > 0 && parentForm.data[0]._id === parentRecord._id) {
-                    return true;
-                }
-            }
-            return false;
-        });
+        // Filtro estricto: solo los registros hijos cuyo _parentId coincida exactamente con el id del padre actual
+        return form.data.filter(r => r._parentId === parentRecord._id);
     }
 
     function getActiveRecord(formId) {
@@ -1387,8 +1374,32 @@
         const pivotSelect = document.getElementById('form-pivot-source');
         if (pivotSelect && pivotSelect.value) {
             const parts = pivotSelect.value.split('::');
-            formObj.pivotFormId = parseInt(parts[0]);
+            const newPivotId = parseInt(parts[0]);
+            formObj.pivotFormId = newPivotId;
             formObj.pivotField = parts[1];
+
+            // Asignación inteligente: si los registros no tienen _parentId correcto, revisamos si algún campo del hijo contiene el nombre del padre
+            const parentForm = getForm(newPivotId);
+            if (parentForm && parentForm.data.length > 0) {
+                formObj.data.forEach(r => {
+                    let matchedParentId = null;
+                    // Buscar coincidencia en los campos del registro hijo con los valores del padre
+                    for (let key in r) {
+                        if (key.startsWith('_')) continue;
+                        const valStr = String(r[key] || '').toLowerCase();
+                        const matchingParent = parentForm.data.find(p => {
+                            const pVal = String(p[formObj.pivotField] || '').toLowerCase();
+                            return pVal && (valStr.includes(pVal) || pVal.includes(valStr));
+                        });
+                        if (matchingParent) {
+                            matchedParentId = matchingParent._id;
+                            break;
+                        }
+                    }
+                    // Si no hubo coincidencia de texto, asignamos al primer padre por defecto
+                    r._parentId = matchedParentId !== null ? matchedParentId : parentForm.data[0]._id;
+                });
+            }
         } else {
             formObj.pivotFormId = null;
             formObj.pivotField = "";
@@ -1575,26 +1586,13 @@
         list.innerHTML = '';
 
         children.forEach(child => {
-            const childRecords = getVisibleRecordsForChild(child, currentRecord._id);
+            const childRecords = child.data.filter(r => r._parentId === currentRecord._id);
             const count = countFilledRecords(child, childRecords);
             const row = document.createElement('div');
             row.className = 'thread-item';
             row.innerHTML = `<span class="thread-item-name"><span class="depth-dot" style="background:${depthColor(getDepth(child.id))};"></span>${child.title}</span><span class="thread-item-count">${count} <svg class="ic" viewBox="0 0 24 24" style="width:12px;height:12px;"><path d="M9 18l6-6-6-6"/></svg></span>`;
             row.onclick = () => launchForm(child.id, { fromDrill: true });
             list.appendChild(row);
-        });
-    }
-
-    function getVisibleRecordsForChild(childForm, parentRecordId) {
-        return childForm.data.filter(r => {
-            if (r._parentId === parentRecordId) return true;
-            if ((r._parentId === null || r._parentId === undefined || r._parentId === '') && childForm.pivotFormId) {
-                const parentForm = getForm(childForm.pivotFormId);
-                if (parentForm && parentForm.data.length > 0 && parentForm.data[0]._id === parentRecordId) {
-                    return true;
-                }
-            }
-            return false;
         });
     }
 
@@ -1698,7 +1696,7 @@
         if (formObj.pivotFormId) {
             const parentRecord = getActiveRecord(formObj.pivotFormId);
             if (!parentRecord) return;
-            parentId = parentRecord._id; // Asignación estrictamente ligada al registro padre activo actual
+            parentId = parentRecord._id;
         }
         formObj.data.push({ _id: nextRecordId(), _parentId: parentId });
         activeIndexByForm[formObj.id] = getVisibleRecords(formObj.id).length - 1;
