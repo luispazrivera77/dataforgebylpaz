@@ -1072,18 +1072,20 @@
         const parentRecord = getActiveRecord(form.pivotFormId);
         if (!parentRecord) return [];
         
-        // Filtro seguro: muestra los registros que pertenecen exactamente al padre actual.
-        // Si un registro antiguo no tiene _parentId asignado pero hay registros padres, 
-        // lo asociamos de forma flexible al primer padre para evitar que "desaparezca" (0 registros).
-        let filtered = form.data.filter(r => r._parentId === parentRecord._id);
-        if (filtered.length === 0 && form.data.length > 0) {
-            const parentForm = getForm(form.pivotFormId);
-            if (parentForm && parentForm.data.length > 0 && parentForm.data[0]._id === parentRecord._id) {
-                // Si es el primer padre y hay registros huérfanos sin _parentId, se muestran aquí de forma transitoria
-                filtered = form.data.filter(r => r._parentId === undefined || r._parentId === null);
+        // Filtro ultra-flexible y seguro: 
+        // 1. Si el registro hijo tiene un _parentId exacto que coincide con el padre actual, se muestra.
+        // 2. Si el registro no tiene _parentId (es decir, viene de importación suelta), se muestra de forma segura 
+        //    en el primer padre para evitar que se pierdan o queden en "0 registros".
+        return form.data.filter(r => {
+            if (r._parentId === parentRecord._id) return true;
+            if ((r._parentId === null || r._parentId === undefined || r._parentId === '') && form.pivotFormId) {
+                const parentForm = getForm(form.pivotFormId);
+                if (parentForm && parentForm.data.length > 0 && parentForm.data[0]._id === parentRecord._id) {
+                    return true;
+                }
             }
-        }
-        return filtered;
+            return false;
+        });
     }
 
     function getActiveRecord(formId) {
@@ -1387,7 +1389,6 @@
             const parts = pivotSelect.value.split('::');
             formObj.pivotFormId = parseInt(parts[0]);
             formObj.pivotField = parts[1];
-            // Al guardar la estructura dependiente, respetamos íntegramente los datos existentes (sin borrar ni sobrescribir _parentId)
         } else {
             formObj.pivotFormId = null;
             formObj.pivotField = "";
@@ -1585,15 +1586,16 @@
     }
 
     function getVisibleRecordsForChild(childForm, parentRecordId) {
-        let filtered = childForm.data.filter(r => r._parentId === parentRecordId);
-        // Si no hay registros asignados explícitamente pero es el primer padre y existen registros sin asignar, los mostramos para seguridad
-        if (filtered.length === 0) {
-            const parentForm = getForm(childForm.pivotFormId);
-            if (parentForm && parentForm.data.length > 0 && parentForm.data[0]._id === parentRecordId) {
-                filtered = childForm.data.filter(r => r._parentId === undefined || r._parentId === null);
+        return childForm.data.filter(r => {
+            if (r._parentId === parentRecordId) return true;
+            if ((r._parentId === null || r._parentId === undefined || r._parentId === '') && childForm.pivotFormId) {
+                const parentForm = getForm(childForm.pivotFormId);
+                if (parentForm && parentForm.data.length > 0 && parentForm.data[0]._id === parentRecordId) {
+                    return true;
+                }
             }
-        }
-        return filtered;
+            return false;
+        });
     }
 
     function saveCurrentRuntimeData() {
@@ -1696,7 +1698,7 @@
         if (formObj.pivotFormId) {
             const parentRecord = getActiveRecord(formObj.pivotFormId);
             if (!parentRecord) return;
-            parentId = parentRecord._id; // Asignación vinculada estrictamente al registro padre actualmente abierto
+            parentId = parentRecord._id; // Asignación estrictamente ligada al registro padre activo actual
         }
         formObj.data.push({ _id: nextRecordId(), _parentId: parentId });
         activeIndexByForm[formObj.id] = getVisibleRecords(formObj.id).length - 1;
