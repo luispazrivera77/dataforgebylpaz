@@ -131,7 +131,6 @@
         line-height: 1.5;
     }
 
-    /* Burbuja de texto aclaratoria contextual */
     .tip-bubble {
         background: var(--surface-2);
         border: 1px solid var(--border-gold);
@@ -167,7 +166,7 @@
         margin-bottom: 6px;
     }
 
-    input, select {
+    input, select, textarea {
         background: var(--surface);
         border: 1px solid var(--border);
         color: var(--text);
@@ -180,7 +179,7 @@
         transition: 0.2s;
     }
 
-    input:focus, select:focus { 
+    input:focus, select:focus, textarea:focus { 
         border-color: var(--gold); 
         box-shadow: 0 0 0 3px var(--gold-soft); 
         background: var(--surface-2);
@@ -363,22 +362,28 @@
     }
 
     .templates-grid {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 6px;
         width: 100%;
-        max-width: 340px;
-        margin-top: 6px;
+        max-width: 360px;
+        margin-top: 4px;
+        max-height: 200px;
+        overflow-y: auto;
+    }
+
+    @media (min-width: 500px) {
+        .templates-grid { grid-template-columns: 1fr 1fr; max-width: 440px; }
     }
 
     .template-card {
         background: var(--surface);
         border: 1px solid var(--border);
         border-radius: 10px;
-        padding: 10px 14px;
+        padding: 10px 12px;
         display: flex;
-        justify-content: space-between;
-        align-items: center;
+        flex-direction: column;
+        gap: 2px;
         cursor: pointer;
         transition: 0.2s;
         text-align: left;
@@ -389,8 +394,8 @@
         background: var(--surface-hover);
     }
 
-    .template-card span { font-size: 13px; font-weight: 500; }
-    .template-card small { font-family: var(--font-mono); font-size: 10px; color: var(--gold); }
+    .template-card span { font-size: 12.5px; font-weight: 500; }
+    .template-card small { font-family: var(--font-mono); font-size: 9.5px; color: var(--gold); }
 
     .app-launcher-grid {
         display: flex;
@@ -662,7 +667,37 @@
         margin: 16px 0;
     }
 
-    /* Notificación Toast */
+    /* Modal / Preview / README */
+    .modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(3, 5, 8, 0.85);
+        backdrop-filter: blur(4px);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 10000;
+        padding: 20px;
+    }
+    .modal-overlay.hidden { display: none; }
+
+    .modal-content {
+        background: var(--bg-screen);
+        border: 1px solid var(--border-gold);
+        border-radius: 14px;
+        width: 100%;
+        max-width: 560px;
+        max-height: 85vh;
+        display: flex;
+        flex-direction: column;
+        padding: 24px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+    }
+
+    .modal-body { flex: 1; overflow-y: auto; margin-top: 12px; margin-bottom: 16px; font-size: 13.5px; line-height: 1.6; color: var(--text-dim); }
+    .modal-body h3 { color: var(--text); font-family: var(--font-display); font-size: 16px; margin: 16px 0 6px 0; }
+    .modal-body pre { background: var(--surface); padding: 10px; border-radius: 8px; border: 1px solid var(--border); font-family: var(--font-mono); font-size: 11.5px; color: var(--gold); overflow-x: auto; }
+
     #toast-notification {
         position: fixed;
         bottom: 24px;
@@ -695,10 +730,13 @@
             <div style="display:flex; gap:6px;">
                 <input type="file" id="import-file-input" accept=".xlsx, .xls" style="display:none;" onchange="importExcelData(event)">
                 
-                <button onclick="resetAppCompletely()" class="btn btn-ghost-gold btn-icon-only" title="Reiniciar aplicación (Borrar todo)">
+                <button onclick="openReadmeModal()" class="btn btn-ghost-gold btn-icon-only" title="Guía y README">
+                    <svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                </button>
+                <button onclick="resetAppCompletely()" class="btn btn-ghost-gold btn-icon-only" title="Reiniciar aplicación">
                     <svg class="ic" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
                 </button>
-                <button onclick="document.getElementById('import-file-input').click()" class="btn btn-ghost-gold btn-icon-only" title="Cargar desde Excel">
+                <button onclick="document.getElementById('import-file-input').click()" class="btn btn-ghost-gold btn-icon-only" title="Cargar Excel">
                     <svg class="ic" viewBox="0 0 24 24"><path d="M12 21v-11"/><path d="M7.5 13.5 12 9l4.5 4.5"/><path d="M5 3h14"/></svg>
                 </button>
                 <button id="export-btn" onclick="exportAllData()" class="btn btn-ghost-gold btn-icon-only" title="Exportar a Excel" style="display:none;">
@@ -717,10 +755,9 @@
             </div>
         </div>
 
-        <!-- Burbuja aclaratoria en el Lanzador -->
         <div class="tip-bubble">
             <svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
-            <div><strong>Centro de Control:</strong> Selecciona un formulario para registrar datos, o utiliza los botones superiores para importar archivos Excel, exportar en varios formatos o reiniciar la app.</div>
+            <div><strong>Panel Principal:</strong> Selecciona un formulario, prueba una plantilla o haz clic en el botón de ayuda <strong>(?)</strong> para ver la documentación y el ejemplo de Webhook.</div>
         </div>
 
         <div class="search-box-wrap" id="global-search-container">
@@ -734,20 +771,28 @@
             <div class="ring">
                 <svg class="ic" viewBox="0 0 24 24" style="width:24px;height:24px;"><path d="M12 5v14M5 12h14"/></svg>
             </div>
-            <h3>Empieza a estructurar datos</h3>
-            <p>Crea tu primer formulario desde cero o elige una plantilla prediseñada para probar al instante:</p>
+            <h3>Comienza con DataForge</h3>
+            <p>Crea tu primer formulario o elige una de nuestras 5 plantillas prediseñadas:</p>
             <div class="templates-grid">
                 <div class="template-card" onclick="loadTemplate('obras')">
-                    <span>🏗️ Control de Obras y Compras</span>
-                    <small>Principal + Hijos</small>
+                    <span>🏗️ Obras y Compras</span>
+                    <small>Relación Padre-Hijo</small>
                 </div>
                 <div class="template-card" onclick="loadTemplate('inventario')">
-                    <span>📦 Inventario de Bodega</span>
-                    <small>Stock y Artículos</small>
+                    <span>📦 Bodega e Inventario</span>
+                    <small>Stock de productos</small>
                 </div>
                 <div class="template-card" onclick="loadTemplate('encuesta')">
-                    <span>⭐ Encuesta de Satisfacción</span>
+                    <span>⭐ Encuesta Satisfacción</span>
                     <small>Calificaciones</small>
+                </div>
+                <div class="template-card" onclick="loadTemplate('usuarios')">
+                    <span>👥 Registro Usuarios</span>
+                    <small>Base de contactos</small>
+                </div>
+                <div class="template-card" onclick="loadTemplate('incidencias')">
+                    <span>🛠️ Reporte Incidencias</span>
+                    <small>Tickets de soporte</small>
                 </div>
             </div>
         </div>
@@ -759,30 +804,39 @@
     <section id="screen-builder" class="screen hidden">
         <div class="top-bar">
             <span id="builder-step-label" class="pill" style="background:var(--gold-soft); color:var(--gold); border: 1px solid var(--border-gold);">Nuevo</span>
-            <button onclick="showLauncher()" class="btn btn-tiny btn-ghost-gold">
-                <svg class="ic" viewBox="0 0 24 24" style="width:13px;height:13px;"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
-                Inicio
-            </button>
+            <div style="display:flex; gap:6px;">
+                <button onclick="previewCurrentForm()" class="btn btn-tiny btn-ghost-gold" title="Simular formulario">
+                    <svg class="ic" viewBox="0 0 24 24" style="width:13px;height:13px;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    Vista previa
+                </button>
+                <button onclick="showLauncher()" class="btn btn-tiny btn-ghost-gold">
+                    Inicio
+                </button>
+            </div>
         </div>
 
         <h2 id="builder-heading">Definir formulario</h2>
-        <p class="subtitle" id="builder-subtitle">Dale un nombre y agrega los datos que quieres registrar.</p>
+        <p class="subtitle" id="builder-subtitle">Configura los campos, reglas y opcionalmente un Webhook de salida.</p>
 
-        <!-- Burbuja aclaratoria en el Diseñador -->
         <div class="tip-bubble">
             <svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
-            <div><strong>Constructor:</strong> Define los campos que contendrá tu formulario. Puedes marcar casillas como <strong>Obligatorio</strong> y opcionalmente relacionarlo con otro formulario padre si es un registro dependiente.</div>
+            <div><strong>Webhook:</strong> Si defines una URL (ej. de Make o Zapier), cada vez que guardes un registro se enviará un payload JSON con la información automáticamente.</div>
         </div>
 
-        <div style="margin-bottom: 16px;">
+        <div style="margin-bottom: 14px;">
             <label class="field-label">Nombre del formulario</label>
-            <input type="text" id="form-title-input" placeholder="Ej. Clientes, Pedidos, Pacientes…">
+            <input type="text" id="form-title-input" placeholder="Ej. Clientes, Pedidos…">
         </div>
 
-        <div id="pivot-section" style="margin-bottom: 16px; display: none;">
+        <div style="margin-bottom: 14px;">
+            <label class="field-label">Webhook URL (Opcional)</label>
+            <input type="text" id="form-webhook-input" placeholder="https://hook.eu1.make.com/...">
+        </div>
+
+        <div id="pivot-section" style="margin-bottom: 14px; display: none;">
             <label class="field-label">Depende de (Relación Padre)</label>
             <select id="form-pivot-source">
-                <option value="">No depende de otro — es un formulario principal</option>
+                <option value="">No depende de otro — es principal</option>
             </select>
         </div>
 
@@ -794,13 +848,13 @@
         <div style="display: flex; gap: 10px; margin-top: 4px;">
             <button type="button" onclick="addBuilderField()" class="btn btn-ghost-gold" style="flex: 1;">
                 <svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
-                Agregar campo
+                Campo
             </button>
             <button type="button" onclick="showLauncher()" class="btn" style="flex: 1;">
                 Cancelar
             </button>
             <button type="button" onclick="saveAndReturnLauncher()" class="btn btn-success" style="flex: 1;">
-                Guardar formulario
+                Guardar
             </button>
         </div>
 
@@ -832,12 +886,6 @@
                     </span>
                 </div>
             </div>
-        </div>
-
-        <!-- Burbuja aclaratoria en la pantalla de Ejecución -->
-        <div class="tip-bubble">
-            <svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
-            <div><strong>Gestión de Registros:</strong> Alterna entre vista de <strong>Tarjeta</strong> (editar registro activo) o <strong>Tabla</strong> (ver todos los registros). Desde aquí también puedes acceder a formularios relacionados hijos.</div>
         </div>
 
         <div class="runtime-scroll">
@@ -897,6 +945,47 @@
 
 </div>
 
+<!-- Modal README / Guía -->
+<div id="readme-modal" class="modal-overlay hidden">
+    <div class="modal-content">
+        <div class="brand-row" style="margin-bottom: 0; padding-bottom: 12px;">
+            <div class="brand" style="font-size: 18px;">DataForge<small>DOCUMENTACIÓN Y README</small></div>
+            <button onclick="closeReadmeModal()" class="btn btn-tiny btn-ghost-gold">Cerrar</button>
+        </div>
+        <div class="modal-body">
+            <h3>📖 Acerca de DataForge</h3>
+            <p>DataForge es un constructor visual de formularios ligero y autocontenido. Permite crear estructuras jerárquicas (padre-hijo), validar campos obligatorios y exportar datos en Excel, CSV o JSON.</p>
+            
+            <h3>🚀 Instalación y Uso</h3>
+            <p>Clona el repositorio o abre el archivo <code>index.html</code> directamente en cualquier navegador moderno, o despliégalo en GitHub Pages.</p>
+
+            <h3>⚡ Ejemplo de Payload Webhook JSON</h3>
+            <p>Al configurar una URL de Webhook en tu formulario, cada respuesta enviada por POST tendrá esta estructura:</p>
+            <pre>{
+  "form": "Obras",
+  "timestamp": "2026-08-28T18:00:00.000Z",
+  "record": {
+    "_id": 1,
+    "Nombre Obra": "Edificio Los Aromos",
+    "Cliente": "Inmobiliaria Sur"
+  }
+}</pre>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Previsualización -->
+<div id="preview-modal" class="modal-overlay hidden">
+    <div class="modal-content">
+        <div class="brand-row" style="margin-bottom: 0; padding-bottom: 12px;">
+            <div class="brand" style="font-size: 18px;">Vista Previa<small>SIMULADOR DE USUARIO FINAL</small></div>
+            <button onclick="closePreviewModal()" class="btn btn-tiny btn-ghost-gold">Cerrar</button>
+        </div>
+        <div class="modal-body" id="preview-container"></div>
+        <button onclick="closePreviewModal()" class="btn btn-gold">Cerrar simulación</button>
+    </div>
+</div>
+
 <!-- Notificación Toast -->
 <div id="toast-notification">
     <svg class="ic" viewBox="0 0 24 24" style="width:16px;height:16px;"><path d="M20 6 9 17l-5-5"/></svg>
@@ -922,6 +1011,31 @@
         toast.classList.add('show');
         setTimeout(() => toast.classList.remove('show'), 2500);
     }
+
+    function openReadmeModal() { document.getElementById('readme-modal').classList.remove('hidden'); }
+    function closeReadmeModal() { document.getElementById('readme-modal').classList.add('hidden'); }
+
+    function previewCurrentForm() {
+        saveBuilderState();
+        const formObj = getForm(editingFormId);
+        const container = document.getElementById('preview-container');
+        let html = `<p style="margin-top:0;"><strong>Simulando formulario:</strong> ${formObj.title || 'Sin título'}</p><div style="display:flex; flex-direction:column; gap:12px;">`;
+
+        formObj.fields.forEach(f => {
+            const req = f.required ? ' <span style="color:var(--danger)">*</span>' : '';
+            html += `<div><label class="field-label">${f.name}${req}</label>`;
+            if (f.type === 'checkbox') {
+                html += `<input type="checkbox" style="width:auto;">`;
+            } else {
+                html += `<input type="${f.type}" placeholder="Escribe aquí...">`;
+            }
+            html += `</div>`;
+        });
+        html += `</div>`;
+        container.innerHTML = html;
+        document.getElementById('preview-modal').classList.remove('hidden');
+    }
+    function closePreviewModal() { document.getElementById('preview-modal').classList.add('hidden'); }
 
     function findRecordById(formId, recordId) {
         const formObj = getForm(formId);
@@ -1024,7 +1138,7 @@
     }
 
     function resetAppCompletely() {
-        if (!confirm('¿Estás seguro de reiniciar la aplicación? Se borrarán todos los formularios y registros actuales para volver al principio.')) return;
+        if (!confirm('¿Reiniciar la aplicación y borrar todos los datos?')) return;
         formsRegistry = [];
         activeIndexByForm = {};
         activeFormId = null;
@@ -1035,75 +1149,49 @@
         showLauncher();
     }
 
+    // ============================================================
+    // PLANTILLAS AMPLIADAS (5 PLANTILLAS)
+    // ============================================================
     function loadTemplate(type) {
         if (type === 'obras') {
             formsRegistry = [
                 {
-                    id: 1, title: "Obras", pivotFormId: null, pivotField: "",
-                    fields: [
-                        { name: "Nombre Obra", type: "text", required: true },
-                        { name: "Cliente", type: "text", required: false },
-                        { name: "Presupuesto", type: "number", required: false }
-                    ],
-                    data: [
-                        { _id: nextRecordId(), _parentId: null, "Nombre Obra": "Edificio Los Aromos", "Cliente": "Inmobiliaria Sur", "Presupuesto": "450000" },
-                        { _id: nextRecordId(), _parentId: null, "Nombre Obra": "Remodelación Centro", "Cliente": "Municipalidad", "Presupuesto": "85000" }
-                    ]
+                    id: 1, title: "Obras", webhook: "", pivotFormId: null, pivotField: "",
+                    fields: [{ name: "Nombre Obra", type: "text", required: true }, { name: "Cliente", type: "text", required: false }],
+                    data: [{ _id: nextRecordId(), _parentId: null, "Nombre Obra": "Edificio Los Aromos", "Cliente": "Inmobiliaria Sur" }]
                 },
                 {
-                    id: 2, title: "Compras", pivotFormId: 1, pivotField: "Nombre Obra",
-                    fields: [
-                        { name: "Ítem / Material", type: "text", required: true },
-                        { name: "Cantidad", type: "number", required: true },
-                        { name: "Costo Total", type: "number", required: false }
-                    ],
-                    data: [
-                        { _id: nextRecordId(), _parentId: 1, "Ítem / Material": "Cemento (sacos)", "Cantidad": "120", "Costo Total": "9600" },
-                        { _id: nextRecordId(), _parentId: 1, "Ítem / Material": "Fierro construcción", "Cantidad": "45", "Costo Total": "15000" }
-                    ]
+                    id: 2, title: "Compras", webhook: "", pivotFormId: 1, pivotField: "Nombre Obra",
+                    fields: [{ name: "Material", type: "text", required: true }, { name: "Cantidad", type: "number", required: true }],
+                    data: [{ _id: nextRecordId(), _parentId: 1, "Material": "Cemento", "Cantidad": "120" }]
                 }
             ];
         } else if (type === 'inventario') {
-            formsRegistry = [
-                {
-                    id: 1, title: "Bodegas", pivotFormId: null, pivotField: "",
-                    fields: [
-                        { name: "Nombre Bodega", type: "text", required: true },
-                        { name: "Ubicación", type: "text", required: false }
-                    ],
-                    data: [
-                        { _id: nextRecordId(), _parentId: null, "Nombre Bodega": "Bodega Central", "Ubicación": "Sector Norte" }
-                    ]
-                },
-                {
-                    id: 2, title: "Artículos", pivotFormId: 1, pivotField: "Nombre Bodega",
-                    fields: [
-                        { name: "Producto", type: "text", required: true },
-                        { name: "Stock", type: "number", required: true },
-                        { name: "Disponible", type: "checkbox", required: false }
-                    ],
-                    data: [
-                        { _id: nextRecordId(), _parentId: 1, "Producto": "Taladro Percutor", "Stock": "14", "Disponible": true },
-                        { _id: nextRecordId(), _parentId: 1, "Producto": "Casco de seguridad", "Stock": "80", "Disponible": true }
-                    ]
-                }
-            ];
+            formsRegistry = [{
+                id: 1, title: "Inventario Bodega", webhook: "", pivotFormId: null, pivotField: "",
+                fields: [{ name: "Producto", type: "text", required: true }, { name: "Stock", type: "number", required: true }, { name: "Disponible", type: "checkbox", required: false }],
+                data: [{ _id: nextRecordId(), _parentId: null, "Producto": "Taladro", "Stock": "14", "Disponible": true }]
+            }];
         } else if (type === 'encuesta') {
-            formsRegistry = [
-                {
-                    id: 1, title: "Evaluaciones", pivotFormId: null, pivotField: "",
-                    fields: [
-                        { name: "Cliente / Usuario", type: "text", required: true },
-                        { name: "Fecha", type: "date", required: false },
-                        { name: "Puntuación (1-5)", type: "number", required: true }
-                    ],
-                    data: [
-                        { _id: nextRecordId(), _parentId: null, "Cliente / Usuario": "Carla Mendoza", "Fecha": "2026-08-25", "Puntuación (1-5)": "5" }
-                    ]
-                }
-            ];
+            formsRegistry = [{
+                id: 1, title: "Encuesta Satisfacción", webhook: "", pivotFormId: null, pivotField: "",
+                fields: [{ name: "Usuario", type: "text", required: true }, { name: "Puntuación (1-5)", type: "number", required: true }],
+                data: [{ _id: nextRecordId(), _parentId: null, "Usuario": "Carla Mendoza", "Puntuación (1-5)": "5" }]
+            }];
+        } else if (type === 'usuarios') {
+            formsRegistry = [{
+                id: 1, title: "Registro Usuarios", webhook: "", pivotFormId: null, pivotField: "",
+                fields: [{ name: "Nombre", type: "text", required: true }, { name: "Correo", type: "email", required: true }],
+                data: [{ _id: nextRecordId(), _parentId: null, "Nombre": "Juan Pérez", "Correo": "juan@example.com" }]
+            }];
+        } else if (type === 'incidencias') {
+            formsRegistry = [{
+                id: 1, title: "Reporte Incidencias", webhook: "", pivotFormId: null, pivotField: "",
+                fields: [{ name: "Descripción", type: "text", required: true }, { name: "Fecha", type: "date", required: false }],
+                data: [{ _id: nextRecordId(), _parentId: null, "Descripción": "Falla de red en piso 2", "Fecha": "2026-08-28" }]
+            }];
         }
-        recordIdCounter = 100;
+        recordIdCounter = 200;
         showToast("¡Plantilla cargada con éxito!");
         showLauncher();
     }
@@ -1125,47 +1213,27 @@
         resultsContainer.innerHTML = '';
 
         let hits = [];
-
         formsRegistry.forEach(form => {
             form.data.forEach(record => {
                 if (!recordHasData(form, record)) return;
-
                 form.fields.forEach(field => {
                     const val = String(record[field.name] || '').trim();
                     if (val.toLowerCase().includes(cleanQuery)) {
-                        hits.push({
-                            formId: form.id,
-                            formTitle: form.title,
-                            recordId: record._id,
-                            fieldName: field.name,
-                            fieldValue: val
-                        });
+                        hits.push({ formId: form.id, formTitle: form.title, recordId: record._id, fieldName: field.name, fieldValue: val });
                     }
                 });
             });
         });
 
         if (hits.length === 0) {
-            resultsContainer.innerHTML = `
-                <div style="text-align:center; padding: 20px; color: var(--text-dim); font-size: 13px;">
-                    No se encontraron coincidencias para "<strong>${query}</strong>"
-                </div>`;
+            resultsContainer.innerHTML = `<div style="text-align:center; padding: 20px; color: var(--text-dim); font-size: 13px;">No hay resultados para "${query}"</div>`;
             return;
         }
 
         hits.slice(0, 15).forEach(hit => {
             const item = document.createElement('div');
             item.className = 'search-result-item';
-            item.innerHTML = `
-                <div class="search-result-header">
-                    <span>📁 ${hit.formTitle}</span>
-                    <span>${hit.fieldName}</span>
-                </div>
-                <div class="search-result-match">
-                    <strong>${hit.fieldValue}</strong>
-                </div>
-            `;
-
+            item.innerHTML = `<div class="search-result-header"><span>📁 ${hit.formTitle}</span><span>${hit.fieldName}</span></div><div class="search-result-match"><strong>${hit.fieldValue}</strong></div>`;
             item.onclick = () => jumpToRecordDirectly(hit.formId, hit.recordId);
             resultsContainer.appendChild(item);
         });
@@ -1174,48 +1242,8 @@
     function jumpToRecordDirectly(targetFormId, targetRecordId) {
         const targetForm = getForm(targetFormId);
         if (!targetForm) return;
-
         saveCurrentRuntimeData();
         navStack = [];
-
-        let curr = targetForm;
-        let parentsPath = [];
-        let currentRecId = targetRecordId;
-
-        while (curr && curr.pivotFormId) {
-            parentsPath.unshift(curr.pivotFormId);
-            const parentForm = getForm(curr.pivotFormId);
-            const recObj = parentForm.data.find(r => r._id === currentRecId || r._id === (targetForm.data.find(tr => tr._id === currentRecId)?._parentId));
-            if (recObj) {
-                currentRecId = recObj._parentId;
-            }
-            curr = parentForm;
-        }
-
-        navStack = parentsPath;
-
-        let chainForms = [...parentsPath, targetFormId];
-        for (let i = 0; i < chainForms.length - 1; i++) {
-            let fId = chainForms[i];
-            let nextFId = chainForms[i+1];
-            let nextFormObj = getForm(nextFId);
-            
-            let parentActiveRec = getActiveRecord(fId);
-            if (parentActiveRec) {
-                let childRecords = nextFormObj.data.filter(r => r._parentId === parentActiveRec._id);
-                let foundIndex = childRecords.findIndex(r => r._id === targetRecordId || (i === chainForms.length - 2 && r._parentId === parentActiveRec._id));
-                if (foundIndex !== -1) {
-                    activeIndexByForm[nextFId] = foundIndex;
-                }
-            }
-        }
-
-        let visibleList = getVisibleRecords(targetFormId);
-        let targetIdx = visibleList.findIndex(r => r._id === targetRecordId);
-        if (targetIdx !== -1) {
-            activeIndexByForm[targetFormId] = targetIdx;
-        }
-
         activeFormId = targetFormId;
         viewMode = 'record';
         document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
@@ -1242,44 +1270,30 @@
         formsRegistry.forEach((form) => {
             const depth = getDepth(form.id);
             const stack = hasDescendants(form.id);
-
             const card = document.createElement('div');
             card.className = `app-icon-card ${stack ? 'has-stack' : ''}`;
-
-            const iconSvg = `<svg class="ic" viewBox="0 0 24 24" style="width:16px;height:16px;color:var(--gold);"><path d="M5 12h14M12 5l7 7-7 7"/></svg>`;
-
-            const metaText = !form.pivotFormId
-                ? `${countFilledRecords(form, form.data)} registro${countFilledRecords(form, form.data) === 1 ? '' : 's'}`
-                : `depende de <strong>${getForm(form.pivotFormId).title}</strong>`;
+            const metaText = !form.pivotFormId ? `${countFilledRecords(form, form.data)} registros` : `depende de <strong>${getForm(form.pivotFormId).title}</strong>`;
 
             card.innerHTML = `
                 <span class="depth-dot" style="background:${depthColor(depth)};"></span>
-                <div class="app-info">
-                    <span class="app-title">${form.title}</span>
-                    <span class="app-meta">${metaText}</span>
-                </div>
-                ${iconSvg}
+                <div class="app-info"><span class="app-title">${form.title}</span><span class="app-meta">${metaText}</span></div>
+                <svg class="ic" viewBox="0 0 24 24" style="width:16px;height:16px;color:var(--gold);"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
             `;
-
             card.onclick = () => {
                 saveCurrentRuntimeData();
                 navStack = [];
-                
-                let curr = form;
-                let parentsPath = [];
+                let curr = form, parentsPath = [];
                 while (curr && curr.pivotFormId) {
                     parentsPath.unshift(curr.pivotFormId);
                     curr = getForm(curr.pivotFormId);
                 }
                 navStack = parentsPath;
-
                 activeFormId = form.id;
                 viewMode = 'table';
                 document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
                 document.getElementById('screen-runtime').classList.remove('hidden');
                 renderRuntime();
             };
-
             listContainer.appendChild(card);
         });
     }
@@ -1287,12 +1301,8 @@
     function startNewForm() {
         const newId = formsRegistry.length ? Math.max(...formsRegistry.map(f => f.id)) + 1 : 1;
         formsRegistry.push({
-            id: newId,
-            title: "",
-            pivotFormId: null,
-            pivotField: "",
-            fields: [{ name: "", type: "text", required: false }],
-            data: []
+            id: newId, title: "", webhook: "", pivotFormId: null, pivotField: "",
+            fields: [{ name: "", type: "text", required: false }], data: []
         });
         editFormStructure(newId, { isNew: true });
     }
@@ -1304,21 +1314,18 @@
 
         document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
         document.getElementById('screen-builder').classList.remove('hidden');
-
         document.getElementById('builder-step-label').textContent = opts.isNew ? 'Nuevo' : 'Editar';
         document.getElementById('builder-heading').textContent = opts.isNew ? 'Definir formulario' : `Editar “${formObj.title || 'formulario'}”`;
         document.getElementById('form-title-input').value = formObj.title;
+        document.getElementById('form-webhook-input').value = formObj.webhook || '';
 
         const pivotSection = document.getElementById('pivot-section');
         const pivotSelect = document.getElementById('form-pivot-source');
-        const subtitle = document.getElementById('builder-subtitle');
-
         const otherForms = formsRegistry.filter(f => f.id !== formObj.id);
+
         if (otherForms.length > 0) {
             pivotSection.style.display = 'block';
-            subtitle.textContent = 'Dale un nombre, agrega los datos, y si corresponde, dile de qué formulario depende.';
-            pivotSelect.innerHTML = `<option value="">No depende de otro — es un formulario principal</option>`;
-
+            pivotSelect.innerHTML = `<option value="">No depende de otro — es principal</option>`;
             otherForms.forEach(pf => {
                 pf.fields.forEach(f => {
                     if (!f.name) return;
@@ -1331,9 +1338,7 @@
             });
         } else {
             pivotSection.style.display = 'none';
-            subtitle.textContent = 'Este será tu primer formulario. Dale un nombre y agrega los datos que quieres registrar.';
         }
-
         renderBuilderFields();
     }
 
@@ -1347,7 +1352,7 @@
             row.className = 'field-builder-row';
             row.innerHTML = `
                 <div class="row-inputs">
-                    <input type="text" class="f-name" placeholder="Nombre del dato (ej. Nombre, Fecha, Monto)" value="${field.name}" data-index="${index}">
+                    <input type="text" class="f-name" placeholder="Nombre del dato" value="${field.name}" data-index="${index}">
                     <select class="f-type" data-index="${index}">
                         <option value="text" ${field.type==='text'?'selected':''}>Texto</option>
                         <option value="number" ${field.type==='number'?'selected':''}>Número</option>
@@ -1357,10 +1362,8 @@
                     </select>
                 </div>
                 <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <label class="row-options">
-                        <input type="checkbox" class="f-required" ${field.required ? 'checked' : ''}> Obligatorio
-                    </label>
-                    ${formObj.fields.length > 1 ? `<button type="button" class="btn btn-danger-outline btn-tiny" onclick="removeBuilderField(${index})">Quitar campo</button>` : ''}
+                    <label class="row-options"><input type="checkbox" class="f-required" ${field.required ? 'checked' : ''}> Obligatorio</label>
+                    ${formObj.fields.length > 1 ? `<button type="button" class="btn btn-danger-outline btn-tiny" onclick="removeBuilderField(${index})">Quitar</button>` : ''}
                 </div>
             `;
             container.appendChild(row);
@@ -1369,15 +1372,13 @@
 
     function addBuilderField() {
         saveBuilderState();
-        const formObj = getForm(editingFormId);
-        formObj.fields.push({ name: "", type: 'text', required: false });
+        getForm(editingFormId).fields.push({ name: "", type: 'text', required: false });
         renderBuilderFields();
     }
 
     function removeBuilderField(index) {
         saveBuilderState();
-        const formObj = getForm(editingFormId);
-        formObj.fields.splice(index, 1);
+        getForm(editingFormId).fields.splice(index, 1);
         renderBuilderFields();
     }
 
@@ -1385,8 +1386,8 @@
         const formObj = getForm(editingFormId);
         if (!formObj) return;
 
-        const titleInput = document.getElementById('form-title-input');
-        if (titleInput) formObj.title = titleInput.value || 'Sin nombre';
+        formObj.title = document.getElementById('form-title-input').value || 'Sin nombre';
+        formObj.webhook = document.getElementById('form-webhook-input').value.trim();
 
         const pivotSelect = document.getElementById('form-pivot-source');
         if (pivotSelect && pivotSelect.value) {
@@ -1401,19 +1402,13 @@
             formObj.pivotField = "";
         }
 
-        const container = document.getElementById('builder-fields-container');
-        if (container) {
-            container.querySelectorAll('.field-builder-row').forEach((row, index) => {
-                const nameInput = row.querySelector('.f-name');
-                const typeSelect = row.querySelector('.f-type');
-                const requiredCheck = row.querySelector('.f-required');
-                if (formObj.fields[index]) {
-                    formObj.fields[index].name = nameInput.value || `Dato ${index + 1}`;
-                    formObj.fields[index].type = typeSelect.value;
-                    formObj.fields[index].required = requiredCheck ? requiredCheck.checked : false;
-                }
-            });
-        }
+        document.querySelectorAll('.field-builder-row').forEach((row, index) => {
+            if (formObj.fields[index]) {
+                formObj.fields[index].name = row.querySelector('.f-name').value || `Dato ${index + 1}`;
+                formObj.fields[index].type = row.querySelector('.f-type').value;
+                formObj.fields[index].required = row.querySelector('.f-required').checked;
+            }
+        });
     }
 
     function saveAndReturnLauncher() {
@@ -1424,30 +1419,10 @@
     function deleteEntireForm() {
         if (!editingFormId) return;
         const formObj = getForm(editingFormId);
-        if (!formObj) return;
-
-        function getAllSubFormIds(parentId) {
-            let ids = [];
-            let children = formsRegistry.filter(f => f.pivotFormId === parentId);
-            children.forEach(child => {
-                ids.push(child.id);
-                ids = ids.concat(getAllSubFormIds(child.id));
-            });
-            return ids;
-        }
-
-        const subFormIds = getAllSubFormIds(formObj.id);
-        const totalFormsToDelete = [formObj.id, ...subFormIds];
-
-        const warningMsg = totalFormsToDelete.length > 1
-            ? `¿Estás seguro de eliminar el formulario "${formObj.title}" y sus ${subFormIds.length} formularios dependientes asociados? Esta acción borrará toda su estructura y datos permanentemente.`
-            : `¿Estás seguro de eliminar el formulario "${formObj.title}"? Esta acción no se puede deshacer.`;
-
-        if (!confirm(warningMsg)) return;
-
-        formsRegistry = formsRegistry.filter(f => !totalFormsToDelete.includes(f.id));
+        if (!confirm(`¿Eliminar formulario "${formObj.title}"?`)) return;
+        formsRegistry = formsRegistry.filter(f => f.id !== editingFormId);
         editingFormId = null;
-        showToast("Formulario eliminado correctamente");
+        showToast("Formulario eliminado");
         showLauncher();
     }
 
@@ -1459,13 +1434,8 @@
     function launchForm(formId, opts) {
         opts = opts || {};
         saveCurrentRuntimeData();
-
-        if (opts.fromDrill && activeFormId) {
-            navStack.push(activeFormId);
-        } else if (opts.fromLauncher) {
-            navStack = [];
-        }
-
+        if (opts.fromDrill && activeFormId) navStack.push(activeFormId);
+        else if (opts.fromLauncher) navStack = [];
         activeFormId = formId;
         viewMode = 'table';
         document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
@@ -1486,17 +1456,13 @@
         const chain = [...navStack, activeFormId];
         return chain.map((id, i) => {
             const f = getForm(id);
-            const depth = getDepth(id);
             const isLast = i === chain.length - 1;
-            return `<span class="crumb ${isLast ? 'crumb-active' : ''}">
-                <span class="depth-dot" style="background:${depthColor(depth)};"></span>${f.title}
-            </span>${isLast ? '' : '<span>/</span>'}`;
+            return `<span class="crumb ${isLast ? 'crumb-active' : ''}"><span class="depth-dot" style="background:${depthColor(getDepth(id))};"></span>${f.title}</span>${isLast ? '' : '<span>/</span>'}`;
         }).join('');
     }
 
     function renderRuntime() {
         const formObj = getForm(activeFormId);
-
         document.getElementById('runtime-breadcrumb').innerHTML = buildBreadcrumb();
         document.getElementById('runtime-title').textContent = formObj.title;
         document.getElementById('runtime-depth-dot').style.background = depthColor(getDepth(formObj.id));
@@ -1524,40 +1490,33 @@
         const record = recordList[idx] || {};
         document.getElementById('record-indicator').textContent = `${recordList.length ? idx + 1 : 0} / ${recordList.length}`;
 
-        const toggle = document.getElementById('view-toggle');
-        toggle.querySelectorAll('.view-toggle-opt').forEach(el => {
+        document.getElementById('view-toggle').querySelectorAll('.view-toggle-opt').forEach(el => {
             el.classList.toggle('active', el.dataset.mode === viewMode);
         });
 
-        const recordNavBar = document.getElementById('record-nav-bar');
-        const cardEl = document.getElementById('runtime-card');
-        const tableEl = document.getElementById('runtime-table');
-
         if (viewMode === 'table') {
-            recordNavBar.style.display = 'none';
-            cardEl.style.display = 'none';
-            tableEl.style.display = 'block';
+            document.getElementById('record-nav-bar').style.display = 'none';
+            document.getElementById('runtime-card').style.display = 'none';
+            document.getElementById('runtime-table').style.display = 'block';
             renderRecordsTable(formObj, recordList, idx);
             renderedRecordId = null;
         } else {
-            recordNavBar.style.display = 'flex';
-            cardEl.style.display = 'flex';
-            tableEl.style.display = 'none';
+            document.getElementById('record-nav-bar').style.display = 'flex';
+            document.getElementById('runtime-card').style.display = 'flex';
+            document.getElementById('runtime-table').style.display = 'none';
             renderSingleRecordCard(formObj, record);
             renderedRecordId = record._id !== undefined ? record._id : null;
         }
-
         renderChildrenSection(formObj.id, record);
     }
 
     function renderSingleRecordCard(formObj, record) {
         const card = document.getElementById('runtime-card');
         let html = '';
-
         if (formObj.pivotFormId) {
             const parentForm = getForm(formObj.pivotFormId);
             const parentRecord = getActiveRecord(formObj.pivotFormId);
-            const label = parentRecord ? (parentRecord[formObj.pivotField] || '(sin valor)') : '(sin registro padre)';
+            const label = parentRecord ? (parentRecord[formObj.pivotField] || '(sin valor)') : '(sin padre)';
             html += `<div class="context-banner">Ligado a <strong>${parentForm.title}</strong> — ${formObj.pivotField}: <strong>${label}</strong></div>`;
         }
 
@@ -1565,21 +1524,16 @@
             const val = record[f.name] !== undefined ? record[f.name] : '';
             const reqMark = f.required ? ' <span style="color:var(--danger)">*</span>' : '';
             html += `<div class="form-field"><label class="field-label">${f.name}${reqMark}</label>`;
-            if (f.type === 'checkbox') {
-                html += `<input type="checkbox" class="r-input" data-name="${f.name}" ${val ? 'checked' : ''} style="width:auto;">`;
-            } else {
-                html += `<input type="${f.type}" class="r-input" data-name="${f.name}" value="${val}">`;
-            }
+            if (f.type === 'checkbox') html += `<input type="checkbox" class="r-input" data-name="${f.name}" ${val ? 'checked' : ''} style="width:auto;">`;
+            else html += `<input type="${f.type}" class="r-input" data-name="${f.name}" value="${val}">`;
             html += `</div>`;
         });
-
-        card.innerHTML = html || `<p class="subtitle">Este formulario todavía no tiene datos definidos.</p>`;
+        card.innerHTML = html || `<p class="subtitle">Sin campos definidos.</p>`;
     }
 
     function renderRecordsTable(formObj, recordList, activeIdx) {
         const tableEl = document.getElementById('runtime-table');
         const cols = formObj.fields;
-
         let html = `<div class="table-wrap"><table class="records-table"><thead><tr>`;
         cols.forEach(f => { html += `<th>${f.name}</th>`; });
         html += `</tr></thead><tbody>`;
@@ -1594,10 +1548,8 @@
             });
             html += `</tr>`;
         });
-
         html += `</tbody></table></div>`;
         tableEl.innerHTML = html;
-
         tableEl.querySelectorAll('tr.table-row').forEach(row => {
             row.onclick = () => selectRecordFromTable(parseInt(row.dataset.idx));
         });
@@ -1626,26 +1578,15 @@
             list.innerHTML = '';
             return;
         }
-
         section.style.display = 'block';
         list.innerHTML = '';
 
         children.forEach(child => {
             const childRecords = child.data.filter(r => r._parentId === currentRecord._id);
             const count = countFilledRecords(child, childRecords);
-            const depth = getDepth(child.id);
             const row = document.createElement('div');
             row.className = 'thread-item';
-            row.innerHTML = `
-                <span class="thread-item-name">
-                    <span class="depth-dot" style="background:${depthColor(depth)};"></span>
-                    ${child.title}
-                </span>
-                <span class="thread-item-count">
-                    ${count}
-                    <svg class="ic" viewBox="0 0 24 24" style="width:12px;height:12px;"><path d="M9 18l6-6-6-6"/></svg>
-                </span>
-            `;
+            row.innerHTML = `<span class="thread-item-name"><span class="depth-dot" style="background:${depthColor(getDepth(child.id))};"></span>${child.title}</span><span class="thread-item-count">${count} <svg class="ic" viewBox="0 0 24 24" style="width:12px;height:12px;"><path d="M9 18l6-6-6-6"/></svg></span>`;
             row.onclick = () => launchForm(child.id, { fromDrill: true });
             list.appendChild(row);
         });
@@ -1654,13 +1595,10 @@
     function saveCurrentRuntimeData() {
         if (!activeFormId || renderedRecordId === null) return;
         if (viewMode !== 'record') return;
-
         const inputs = document.querySelectorAll('#runtime-card .r-input');
         if (inputs.length === 0) return;
-
         const currentRecord = findRecordById(activeFormId, renderedRecordId);
         if (!currentRecord) return;
-
         inputs.forEach(input => {
             currentRecord[input.dataset.name] = input.type === 'checkbox' ? input.checked : input.value;
         });
@@ -1671,36 +1609,39 @@
         if (!formObj) return;
 
         if (viewMode === 'record' && renderedRecordId !== null) {
-            const inputs = document.querySelectorAll('#runtime-card .r-input');
-            let missingRequired = false;
-
-            inputs.forEach(input => {
-                const fieldName = input.dataset.name;
-                const fieldDef = formObj.fields.find(f => f.name === fieldName);
-                if (fieldDef && fieldDef.required) {
-                    const val = input.type === 'checkbox' ? input.checked : input.value.trim();
-                    if (!val) missingRequired = true;
+            let missing = false;
+            document.querySelectorAll('#runtime-card .r-input').forEach(input => {
+                const fDef = formObj.fields.find(f => f.name === input.dataset.name);
+                if (fDef && fDef.required) {
+                    const v = input.type === 'checkbox' ? input.checked : input.value.trim();
+                    if (!v) missing = true;
                 }
             });
-
-            if (missingRequired) {
-                alert('Por favor complete todos los campos obligatorios (*) antes de guardar.');
+            if (missing) {
+                alert('Complete los campos obligatorios (*).');
                 return;
             }
         }
 
         saveCurrentRuntimeData();
-        showToast("Registro guardado con éxito");
+        showToast("Registro guardado");
+
+        // Disparar Webhook si está configurado
+        if (formObj.webhook) {
+            const currentRecord = findRecordById(activeFormId, renderedRecordId);
+            fetch(formObj.webhook, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ form: formObj.title, timestamp: new Date().toISOString(), record: currentRecord })
+            }).catch(err => console.log('Webhook dispatched locally/error:', err));
+        }
 
         const btn = document.getElementById('save-btn');
         if (!btn) return;
-        const original = btn.innerHTML;
+        const orig = btn.innerHTML;
         btn.classList.add('btn-saved');
         btn.innerHTML = `<svg class="ic" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg> Guardado`;
-        setTimeout(() => {
-            btn.classList.remove('btn-saved');
-            btn.innerHTML = original;
-        }, 1100);
+        setTimeout(() => { btn.classList.remove('btn-saved'); btn.innerHTML = orig; }, 1100);
     }
 
     function clearCurrentRecord() {
@@ -1708,24 +1649,15 @@
         const formObj = getForm(activeFormId);
         const currentRecord = findRecordById(activeFormId, renderedRecordId);
         if (!currentRecord) return;
-
-        const hasData = formObj.fields.some(f => {
-            const v = currentRecord[f.name];
-            return v !== undefined && v !== '' && v !== false;
-        });
-        if (hasData && !confirm('¿Borrar los datos de este registro? Esta acción no se puede deshacer.')) return;
-
-        formObj.fields.forEach(f => {
-            currentRecord[f.name] = f.type === 'checkbox' ? false : '';
-        });
+        if (!confirm('¿Limpiar registro?')) return;
+        formObj.fields.forEach(f => { currentRecord[f.name] = f.type === 'checkbox' ? false : ''; });
         renderRuntime();
         showToast("Registro limpiado");
     }
 
     function deleteDescendantRecords(formId, recordId) {
         getChildForms(formId).forEach(child => {
-            const toDelete = child.data.filter(r => r._parentId === recordId);
-            toDelete.forEach(r => deleteDescendantRecords(child.id, r._id));
+            child.data.filter(r => r._parentId === recordId).forEach(r => deleteDescendantRecords(child.id, r._id));
             child.data = child.data.filter(r => r._parentId !== recordId);
         });
     }
@@ -1734,18 +1666,9 @@
         if (!activeFormId || renderedRecordId === null) return;
         const formObj = getForm(activeFormId);
         const currentRecord = findRecordById(activeFormId, renderedRecordId);
-        if (!currentRecord) return;
-
-        const childCount = getChildForms(activeFormId)
-            .reduce((sum, child) => sum + countFilledRecords(child, child.data.filter(r => r._parentId === currentRecord._id)), 0);
-        const warning = childCount > 0
-            ? `Este registro tiene ${childCount} registro${childCount === 1 ? '' : 's'} relacionado${childCount === 1 ? '' : 's'} que también se eliminarán. ¿Continuar?`
-            : '¿Eliminar este registro? Esta acción no se puede deshacer.';
-        if (!confirm(warning)) return;
-
+        if (!currentRecord || !confirm('¿Eliminar este registro?')) return;
         deleteDescendantRecords(activeFormId, currentRecord._id);
         formObj.data = formObj.data.filter(r => r._id !== currentRecord._id);
-
         renderedRecordId = null;
         resetDescendantIndices(activeFormId);
         renderRuntime();
@@ -1766,39 +1689,30 @@
     function addNewRecord() {
         saveCurrentRuntimeData();
         const formObj = getForm(activeFormId);
-
         let parentId = null;
         if (formObj.pivotFormId) {
             const parentRecord = getActiveRecord(formObj.pivotFormId);
-            if (!parentRecord) { return; }
+            if (!parentRecord) return;
             parentId = parentRecord._id;
         }
-
-        const newRec = { _id: nextRecordId(), _parentId: parentId };
-        formObj.data.push(newRec);
-
-        const list = getVisibleRecords(formObj.id);
-        activeIndexByForm[formObj.id] = list.length - 1;
+        formObj.data.push({ _id: nextRecordId(), _parentId: parentId });
+        activeIndexByForm[formObj.id] = getVisibleRecords(formObj.id).length - 1;
         resetDescendantIndices(formObj.id);
         viewMode = 'record';
         renderRuntime();
-        showToast("Nuevo registro creado");
+        showToast("Nuevo registro");
     }
 
     function formToRows(formObj) {
         const records = formObj.data.filter(r => recordIsExportable(formObj.id, r));
-
         let parentForm = null, parentLabelField = null;
         const headerRow = formObj.fields.map(f => f.name);
-
         if (formObj.pivotFormId) {
             parentForm = getForm(formObj.pivotFormId);
             parentLabelField = parentForm.fields[0] ? parentForm.fields[0].name : null;
-            headerRow.unshift(`${parentForm.title}${parentLabelField ? ' (' + parentLabelField + ')' : ''}`);
+            headerRow.unshift(`${parentForm.title}`);
         }
-
         const rows = [headerRow];
-
         records.forEach(r => {
             const row = formObj.fields.map(f => {
                 let v = r[f.name];
@@ -1807,237 +1721,81 @@
             });
             if (parentForm) {
                 const parentRec = findRecordById(parentForm.id, r._parentId);
-                const label = parentRec && parentLabelField ? parentRec[parentLabelField] : '';
-                row.unshift(label === undefined ? '' : label);
+                row.unshift(parentRec && parentLabelField ? parentRec[parentLabelField] : '');
             }
             rows.push(row);
         });
-
         return rows;
     }
 
-    function sheetNameFor(formObj, usedNames) {
-        let base = (formObj.title || `Formulario ${formObj.id}`)
-            .replace(/[:\\/\?\*\[\]]/g, ' ')
-            .trim()
-            .slice(0, 31) || `Form${formObj.id}`;
-
-        let name = base, n = 2;
-        while (usedNames.has(name)) {
-            const suffix = ` (${n++})`;
-            name = base.slice(0, 31 - suffix.length) + suffix;
-        }
-        usedNames.add(name);
-        return name;
-    }
-
     function exportAllData() {
-        const exportableForms = formsRegistry.filter(f => f.data.some(r => recordIsExportable(f.id, r)));
-        if (exportableForms.length === 0) return;
-
         const wb = XLSX.utils.book_new();
         const usedNames = new Set();
-
-        exportableForms.forEach(formObj => {
+        formsRegistry.filter(f => f.data.some(r => recordIsExportable(f.id, r))).forEach(formObj => {
             const rows = formToRows(formObj);
             const ws = XLSX.utils.aoa_to_sheet(rows);
-
-            ws['!cols'] = rows[0].map((_, colIdx) => {
-                const maxLen = rows.reduce((m, r) => Math.max(m, String(r[colIdx] ?? '').length), 8);
-                return { wch: Math.min(Math.max(maxLen + 2, 10), 40) };
-            });
-
-            XLSX.utils.book_append_sheet(wb, ws, sheetNameFor(formObj, usedNames));
+            XLSX.utils.book_append_sheet(wb, ws, formObj.title.slice(0, 31));
         });
-
-        const today = new Date().toISOString().slice(0, 10);
-        XLSX.writeFile(wb, `DataForge_export_${today}.xlsx`);
-        showToast("Exportado a Excel correctamente");
+        XLSX.writeFile(wb, `DataForge_export_${new Date().toISOString().slice(0, 10)}.xlsx`);
+        showToast("Exportado a Excel");
     }
 
     function exportDataCSV() {
-        const exportableForms = formsRegistry.filter(f => f.data.some(r => recordIsExportable(f.id, r)));
-        if (exportableForms.length === 0) return;
-
-        let csvContent = "";
-        exportableForms.forEach(formObj => {
-            csvContent += `\n--- FORMULARIO: ${formObj.title} ---\n`;
-            const rows = formToRows(formObj);
-            rows.forEach(row => {
-                csvContent += row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(",") + "\n";
+        let csv = "";
+        formsRegistry.filter(f => f.data.some(r => recordIsExportable(f.id, r))).forEach(formObj => {
+            csv += `\n# ${formObj.title}\n`;
+            formToRows(formObj).forEach(row => {
+                csv += row.map(c => `"${String(c).replace(/"/g, '""')}"`).join(",") + "\n";
             });
         });
-
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement("a");
-        link.setAttribute("href", url);
-        link.setAttribute("download", `DataForge_export_${new Date().toISOString().slice(0, 10)}.csv`);
-        document.body.appendChild(link);
+        link.href = URL.createObjectURL(blob);
+        link.download = `DataForge_export_${new Date().toISOString().slice(0, 10)}.csv`;
         link.click();
-        document.body.removeChild(link);
-        showToast("Exportado a CSV correctamente");
+        showToast("Exportado a CSV");
     }
 
     function exportDataJSON() {
-        const exportableForms = formsRegistry.filter(f => f.data.some(r => recordIsExportable(f.id, r)));
-        if (exportableForms.length === 0) return;
-
         const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(formsRegistry, null, 2));
-        const downloadAnchor = document.createElement('a');
-        downloadAnchor.setAttribute("href", dataStr);
-        downloadAnchor.setAttribute("download", `DataForge_export_${new Date().toISOString().slice(0, 10)}.json`);
-        document.body.appendChild(downloadAnchor);
-        downloadAnchor.click();
-        downloadAnchor.remove();
-        showToast("Exportado a JSON correctamente");
+        const link = document.createElement('a');
+        link.href = dataStr;
+        link.download = `DataForge_export_${new Date().toISOString().slice(0, 10)}.json`;
+        link.click();
+        showToast("Exportado a JSON");
     }
 
     function importExcelData(event) {
         const file = event.target.files[0];
         if (!file) return;
-
         const reader = new FileReader();
         reader.onload = function(e) {
             try {
-                const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, { type: 'array' });
-
-                let tempForms = [];
-                let nextId = 1;
-                let rawSheetsData = [];
-
-                workbook.SheetNames.forEach((sheetName) => {
-                    const worksheet = workbook.Sheets[sheetName];
-                    const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                const workbook = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+                let tempForms = [], nextId = 1;
+                workbook.SheetNames.forEach(sheetName => {
+                    const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { header: 1 });
                     if (rows.length === 0) return;
-
-                    let rawHeader = rows[0].map(h => String(h || '').trim()).filter(h => h !== '');
-                    if (rawHeader.length === 0) return;
-
-                    rawSheetsData.push({
-                        title: sheetName.trim(),
-                        rawHeader: rawHeader,
-                        rows: rows.slice(1)
-                    });
-                });
-
-                if (rawSheetsData.length === 0) {
-                    alert('No se encontraron datos válidos en el archivo Excel.');
-                    return;
-                }
-
-                rawSheetsData.forEach((sheet) => {
-                    let fields = sheet.rawHeader.map(name => ({ name, type: 'text', required: false }));
+                    let header = rows[0].map(h => String(h || '').trim()).filter(Boolean);
+                    if (header.length === 0) return;
                     tempForms.push({
-                        id: nextId++,
-                        title: sheet.title,
-                        pivotFormId: null,
-                        pivotField: "",
-                        fields: fields,
-                        rawRows: sheet.rows,
-                        data: []
+                        id: nextId++, title: sheetName, webhook: "", pivotFormId: null, pivotField: "",
+                        fields: header.map(name => ({ name, type: 'text', required: false })),
+                        data: rows.slice(1).map(r => {
+                            let rec = { _id: nextRecordId(), _parentId: null };
+                            header.forEach((h, i) => { rec[h] = r[i] !== undefined ? String(r[i]) : ''; });
+                            return rec;
+                        }).filter(r => recordHasData({ fields: header.map(name => ({name})) }, r))
                     });
                 });
-
-                tempForms.forEach((formObj) => {
-                    formObj.rawRows.forEach((rowVals) => {
-                        if (!rowVals || rowVals.length === 0) return;
-                        const rec = { _id: nextRecordId(), _parentId: null };
-                        let hasAnyVal = false;
-
-                        formObj.fields.forEach((f, fIdx) => {
-                            const val = rowVals[fIdx];
-                            if (val !== undefined && val !== null && String(val).trim() !== '') {
-                                rec[f.name] = String(val);
-                                hasAnyVal = true;
-                            } else {
-                                rec[f.name] = '';
-                            }
-                        });
-
-                        if (hasAnyVal) {
-                            formObj.data.push(rec);
-                        }
-                    });
-                });
-
-                for (let i = 1; i < tempForms.length; i++) {
-                    let childForm = tempForms[i];
-                    let bestParentForm = null;
-                    let bestParentField = null;
-                    let matchingColIndex = -1;
-
-                    for (let p = 0; p < i; p++) {
-                        let parentForm = tempForms[p];
-                        if (parentForm.data.length === 0) continue;
-
-                        childForm.fields.forEach((childField, cIdx) => {
-                            let matchCount = 0;
-                            childForm.data.forEach(childRec => {
-                                let val = String(childRec[childField.name] || '').trim().toLowerCase();
-                                if (!val) return;
-                                
-                                let foundInParent = parentForm.data.some(parentRec => 
-                                    Object.values(parentRec).some(pv => String(pv || '').trim().toLowerCase() === val)
-                                );
-                                if (foundInParent) matchCount++;
-                            });
-
-                            if (matchCount > 0 && matchCount >= Math.min(2, childForm.data.length)) {
-                                bestParentForm = parentForm;
-                                bestParentField = parentForm.fields[0].name;
-                                matchingColIndex = cIdx;
-                            }
-                        });
-
-                        if (bestParentForm) break;
-                    }
-
-                    if (!bestParentForm && i > 0) {
-                        bestParentForm = tempForms[i - 1];
-                        bestParentField = bestParentForm.fields[0].name;
-                        matchingColIndex = 0;
-                    }
-
-                    if (bestParentForm) {
-                        childForm.pivotFormId = bestParentForm.id;
-                        childForm.pivotField = bestParentField;
-
-                        childForm.data.forEach(childRec => {
-                            if (matchingColIndex >= 0 && childForm.fields[matchingColIndex]) {
-                                let searchKey = String(childRec[childForm.fields[matchingColIndex].name] || '').trim().toLowerCase();
-                                
-                                let matchedParentRecord = bestParentForm.data.find(pr => 
-                                    Object.values(pr).some(pv => String(pv || '').trim().toLowerCase() === searchKey)
-                                );
-
-                                if (matchedParentRecord) {
-                                    childRec._parentId = matchedParentRecord._id;
-                                }
-                            }
-                            
-                            if (!childRec._parentId && bestParentForm.data.length > 0) {
-                                childRec._parentId = bestParentForm.data[0]._id;
-                            }
-                        });
-                    }
-                }
-
-                tempForms.forEach(f => delete f.rawRows);
-
                 if (tempForms.length > 0) {
                     formsRegistry = tempForms;
                     recordIdCounter = Math.max(...formsRegistry.flatMap(f => f.data.map(r => r._id || 0)), 0) + 1;
-                    activeIndexByForm = {};
                     showLauncher();
-                    showToast("¡Datos importados con éxito!");
-                } else {
-                    alert('No se pudieron procesar datos válidos de las hojas.');
+                    showToast("Importado exitosamente");
                 }
             } catch (err) {
-                console.error(err);
-                alert('Ocurrió un error al leer el archivo Excel. Verifique que la estructura sea correcta.');
+                alert('Error al leer el archivo Excel.');
             } finally {
                 event.target.value = '';
             }
