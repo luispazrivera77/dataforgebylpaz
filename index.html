@@ -700,7 +700,7 @@
 
     .modal-body { flex: 1; overflow-y: auto; margin-top: 12px; margin-bottom: 16px; font-size: 13.5px; line-height: 1.6; color: var(--text-dim); }
     .modal-body h3 { color: var(--text); font-family: var(--font-display); font-size: 16px; margin: 16px 0 6px 0; }
-    .modal-body pre { background: var(--surface); padding: 10px; border-radius: 8px; border: 1px solid var(--border); font-family: var(--font-mono); font-size: 11.5px; color: var(--gold); overflow-x: auto; }
+    .modal-body p { margin: 0 0 12px 0; }
 
     #toast-notification {
         position: fixed;
@@ -759,7 +759,7 @@
             </div>
         </div>
 
-        <!-- Hero / Propuesta de Valor actualizada -->
+        <!-- Hero / Propuesta de Valor -->
         <div class="hero-banner">
             <h1 class="hero-title">Trabaja, Diseña y sincroniza datos sin fricción</h1>
             <p class="hero-desc">Crea bases de datos para exportar a excel, formularios con validaciones en tiempo real, relaciona registros en cascada (Padre-Hijo), exporta o sincroniza mediante Webhooks de forma instantánea.</p>
@@ -954,22 +954,7 @@
         </div>
         <div class="modal-body">
             <h3>📖 Acerca de DataForge</h3>
-            <p>DataForge es un constructor visual de formularios ligero y autocontenido. Permite crear estructuras jerárquicas (padre-hijo), validar campos obligatorios y exportar datos en Excel, CSV o JSON.</p>
-            
-            <h3>🚀 Instalación y Uso</h3>
-            <p>Clona el repositorio o abre el archivo <code>index.html</code> directamente en cualquier navegador moderno, o despliégalo en GitHub Pages.</p>
-
-            <h3>⚡ Ejemplo de Payload Webhook JSON</h3>
-            <p>Al configurar una URL de Webhook en tu formulario, cada respuesta enviada por POST tendrá esta estructura:</p>
-            <pre>{
-  "form": "Obras",
-  "timestamp": "2026-08-28T18:00:00.000Z",
-  "record": {
-    "_id": 1,
-    "Nombre Obra": "Edificio Los Aromos",
-    "Cliente": "Inmobiliaria Sur"
-  }
-}</pre>
+            <p>DataForge es una aplicación web para trabajar, construir y gestionar datos, formularios y estructuras de datos de forma visual y ligera. Pensada para usuarios que necesitan trabajar, prototipar o gestionar pequeños flujos de captura sin depender de soluciones complejas.</p>
         </div>
     </div>
 </div>
