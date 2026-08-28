@@ -1071,7 +1071,8 @@
         if (!form.pivotFormId) return form.data;
         const parentRecord = getActiveRecord(form.pivotFormId);
         if (!parentRecord) return [];
-        return form.data.filter(r => r._parentId === parentRecord._id || r._parentId === undefined || r._parentId === null);
+        // Filtrado estricto por _parentId
+        return form.data.filter(r => r._parentId === parentRecord._id);
     }
 
     function getActiveRecord(formId) {
@@ -1377,12 +1378,20 @@
             formObj.pivotFormId = newPivotId;
             formObj.pivotField = parts[1];
 
-            // Asignar un _parentId por defecto a los registros existentes que no lo tengan
+            // Al convertir a dependiente, si los registros no tienen _parentId válido,
+            // los asociamos al primer registro del padre o dejamos un ID por defecto para que no se queden huérfanos sin filtrar.
             const parentForm = getForm(newPivotId);
-            const defaultParentId = parentForm && parentForm.data.length > 0 ? parentForm.data[0]._id : null;
-            formObj.data.forEach(r => {
+            const firstParentId = parentForm && parentForm.data.length > 0 ? parentForm.data[0]._id : null;
+            
+            formObj.data.forEach((r, idx) => {
                 if (r._parentId === undefined || r._parentId === null) {
-                    r._parentId = defaultParentId;
+                    // Si hay varios padres, distribuimos equitativamente o asignamos al primero
+                    if (parentForm && parentForm.data.length > 0) {
+                        const targetParent = parentForm.data[idx % parentForm.data.length];
+                        r._parentId = targetParent._id;
+                    } else {
+                        r._parentId = firstParentId;
+                    }
                 }
             });
         } else {
@@ -1571,7 +1580,7 @@
         list.innerHTML = '';
 
         children.forEach(child => {
-            const childRecords = child.data.filter(r => r._parentId === currentRecord._id || r._parentId === undefined || r._parentId === null);
+            const childRecords = child.data.filter(r => r._parentId === currentRecord._id);
             const count = countFilledRecords(child, childRecords);
             const row = document.createElement('div');
             row.className = 'thread-item';
