@@ -616,13 +616,11 @@
             </div>
         </div>
 
-        <!-- Buscador Global Avanzado -->
         <div class="search-box-wrap" id="global-search-container">
             <svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
             <input type="text" id="global-search-input" placeholder="Buscar en cualquier campo o formulario..." oninput="handleGlobalSearch(this.value)">
         </div>
 
-        <!-- Resultados de búsqueda global -->
         <div id="global-search-results" class="global-search-results" style="display:none;"></div>
 
         <div id="launcher-empty" class="empty-state" style="display:none;">
@@ -758,8 +756,9 @@
             </button>
         </div>
 
+        <!-- Barra de navegación inferior con el botón Volver siempre visible (si hay jerarquía) o Inicio -->
         <div class="action-row">
-            <button id="back-parent-btn" onclick="goBackToParent()" class="btn btn-ghost-gold" style="display:none;">
+            <button id="back-parent-btn" onclick="goBackToParent()" class="btn btn-ghost-gold">
                 <svg class="ic" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
                 Volver
             </button>
@@ -882,7 +881,6 @@
         document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
         document.getElementById('screen-launcher').classList.remove('hidden');
         
-        // Limpiar buscador al volver
         const searchInput = document.getElementById('global-search-input');
         if (searchInput) searchInput.value = '';
         document.getElementById('global-search-results').style.display = 'none';
@@ -890,9 +888,6 @@
         renderLauncherList();
     }
 
-    // ============================================================
-    // BUSCADOR GLOBAL EN CUALQUIER CAMPO O FORMULARIO
-    // ============================================================
     function handleGlobalSearch(query) {
         const resultsContainer = document.getElementById('global-search-results');
         const launcherList = document.getElementById('launcher-list');
@@ -963,7 +958,6 @@
         saveCurrentRuntimeData();
         navStack = [];
 
-        // Reconstruir la ruta de ancestros (padres/abuelos) para la navegación dependiente
         let curr = targetForm;
         let parentsPath = [];
         let currentRecId = targetRecordId;
@@ -980,14 +974,12 @@
 
         navStack = parentsPath;
 
-        // Establecer la ruta de ancestros de registros activos (para que los hijos dependientes apunten al padre correcto)
         let chainForms = [...parentsPath, targetFormId];
         for (let i = 0; i < chainForms.length - 1; i++) {
             let fId = chainForms[i];
             let nextFId = chainForms[i+1];
             let nextFormObj = getForm(nextFId);
             
-            // Hallar qué registro hijo corresponde al padre actual
             let parentActiveRec = getActiveRecord(fId);
             if (parentActiveRec) {
                 let childRecords = nextFormObj.data.filter(r => r._parentId === parentActiveRec._id);
@@ -998,7 +990,6 @@
             }
         }
 
-        // Posicionar el índice del registro de destino exacto
         let visibleList = getVisibleRecords(targetFormId);
         let targetIdx = visibleList.findIndex(r => r._id === targetRecordId);
         if (targetIdx !== -1) {
@@ -1006,7 +997,7 @@
         }
 
         activeFormId = targetFormId;
-        viewMode = 'record'; // Abrir directamente en modo tarjeta/detalle del registro encontrado
+        viewMode = 'record';
         document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
         document.getElementById('screen-runtime').classList.remove('hidden');
         renderRuntime();
@@ -1280,7 +1271,17 @@
         document.getElementById('runtime-title').textContent = formObj.title;
         document.getElementById('runtime-depth-dot').style.background = depthColor(getDepth(formObj.id));
 
-        document.getElementById('back-parent-btn').style.display = navStack.length > 0 ? 'flex' : 'none';
+        // El botón "Volver" se muestra si hay elementos en el stack, o lleva al inicio si es principal
+        const backBtn = document.getElementById('back-parent-btn');
+        if (navStack.length > 0) {
+            backBtn.style.display = 'flex';
+            backBtn.innerHTML = `<svg class="ic" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg> Volver`;
+            backBtn.onclick = goBackToParent;
+        } else {
+            backBtn.style.display = 'flex';
+            backBtn.innerHTML = `<svg class="ic" viewBox="0 0 24 24" style="width:13px;height:13px;"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg> Menú`;
+            backBtn.onclick = showLauncher;
+        }
 
         let recordList = getVisibleRecords(formObj.id);
         if (recordList.length === 0) getActiveRecord(formObj.id);
