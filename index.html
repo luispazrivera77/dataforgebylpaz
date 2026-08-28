@@ -1348,7 +1348,7 @@
     }
 
     // ============================================================
-    // IMPORTACIÓN AVANZADA DE EXCEL CON DETECCIÓN INTELIGENTE DE PIVOTES
+    // IMPORTACIÓN INTELIGENTE CON VINCULACIÓN PROFUNDA DE DATOS
     // ============================================================
 
     function importExcelData(event) {
@@ -1363,9 +1363,9 @@
 
                 let tempForms = [];
                 let nextId = 1;
-                let parsedSheets = [];
+                let rawSheetsData = [];
 
-                // Paso 1: Leer todas las hojas y sus encabezados/filas
+                // 1. Leer hojas y extraer filas brutas
                 workbook.SheetNames.forEach((sheetName) => {
                     const worksheet = workbook.Sheets[sheetName];
                     const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
@@ -1374,81 +1374,41 @@
                     let rawHeader = rows[0].map(h => String(h || '').trim()).filter(h => h !== '');
                     if (rawHeader.length === 0) return;
 
-                    parsedSheets.push({
-                        sheetName: sheetName.trim(),
+                    rawSheetsData.push({
+                        title: sheetName.trim(),
                         rawHeader: rawHeader,
                         rows: rows.slice(1)
                     });
                 });
 
-                if (parsedSheets.length === 0) {
+                if (rawSheetsData.length === 0) {
                     alert('No se encontraron datos válidos en el archivo Excel.');
                     return;
                 }
 
-                // Paso 2: Crear formularios y analizar cabeceras en busca de referencias al padre
-                parsedSheets.forEach((sheet, sheetIdx) => {
-                    let rawHeader = [...sheet.rawHeader];
-                    let pivotFormId = null;
-                    let pivotField = "";
-                    let hasPivotCol = false;
-
-                    // Formato exportado: "Padre (Campo)"
-                    const matchFormat = rawHeader[0].match(/^(.*?)\s*\((.*?)\)$/);
-                    if (matchFormat) {
-                        const potentialParentTitle = matchFormat[1].trim();
-                        const potentialParentField = matchFormat[2].trim();
-                        const foundParent = tempForms.find(f => f.title.toLowerCase() === potentialParentTitle.toLowerCase());
-                        if (foundParent) {
-                            pivotFormId = foundParent.id;
-                            pivotField = potentialParentField;
-                            hasPivotCol = true;
-                            rawHeader.shift();
-                        }
-                    } else if (sheetIdx > 0) {
-                        // Si la primera columna no tiene formato explícito pero coincide con el título o campo de una hoja previa
-                        const prevForm = tempForms[sheetIdx - 1];
-                        if (prevForm) {
-                            const firstColHeader = rawHeader[0].toLowerCase();
-                            const matchesParentTitle = firstColHeader.includes(prevForm.title.toLowerCase());
-                            const matchesParentField = prevForm.fields.some(f => f.name.toLowerCase() === firstColHeader);
-
-                            if (matchesParentTitle || matchesParentField || rawHeader.length > 1) {
-                                pivotFormId = prevForm.id;
-                                pivotField = prevForm.fields[0] ? prevForm.fields[0].name : 'ID';
-                                hasPivotCol = true;
-                                rawHeader.shift();
-                            }
-                        }
-                    }
-
-                    if (rawHeader.length === 0) rawHeader = ['Dato 1'];
-                    const fields = rawHeader.map(name => ({ name, type: 'text' }));
-
+                // 2. Crear las estructuras base de formularios
+                rawSheetsData.forEach((sheet) => {
+                    let fields = sheet.rawHeader.map(name => ({ name, type: 'text' }));
                     tempForms.push({
                         id: nextId++,
-                        title: sheet.sheetName,
-                        pivotFormId: pivotFormId,
-                        pivotField: pivotField,
+                        title: sheet.title,
+                        pivotFormId: null,
+                        pivotField: "",
                         fields: fields,
                         rawRows: sheet.rows,
-                        hasPivotCol: hasPivotCol,
                         data: []
                     });
                 });
 
-                // Paso 3: Rellenar los registros y realizar el mapeo de relaciones foráneas cruzando valores
+                // 3. Poblar registros independientes primero
                 tempForms.forEach((formObj) => {
                     formObj.rawRows.forEach((rowVals) => {
                         if (!rowVals || rowVals.length === 0) return;
-
                         const rec = { _id: nextRecordId(), _parentId: null };
-                        let colOffset = formObj.hasPivotCol ? 1 : 0;
-                        let parentKeyVal = formObj.hasPivotCol ? String(rowVals[0] || '').trim() : null;
-
                         let hasAnyVal = false;
+
                         formObj.fields.forEach((f, fIdx) => {
-                            const val = rowVals[fIdx + colOffset];
+                            const val = rowVals[fIdx];
                             if (val !== undefined && val !== null && String(val).trim() !== '') {
                                 rec[f.name] = String(val);
                                 hasAnyVal = true;
@@ -1457,44 +1417,99 @@
                             }
                         });
 
-                        if (formObj.pivotFormId) {
-                            const parentForm = tempForms.find(f => f.id === formObj.pivotFormId);
-                            if (parentForm && parentForm.data.length > 0) {
-                                if (parentKeyVal) {
-                                    // Búsqueda estricta por valor de la columna pivote
-                                    let matchedParent = parentForm.data.find(pr => String(pr[formObj.pivotField] || '').trim().toLowerCase() === parentKeyVal.toLowerCase());
-                                    
-                                    // Búsqueda flexible si falla la estricta (busca en cualquier campo del registro padre)
-                                    if (!matchedParent) {
-                                        matchedParent = parentForm.data.find(pr => Object.values(pr).some(v => String(v).trim().toLowerCase() === parentKeyVal.toLowerCase()));
-                                    }
-
-                                    if (matchedParent) {
-                                        rec._parentId = matchedParent._id;
-                                    }
-                                }
-                                // Fallback inteligente: si no se encontró coincidencia explícita pero el padre tiene registros, asignar al primer registro activo o secuencial
-                                if (!rec._parentId && parentForm.data.length > 0) {
-                                    rec._parentId = parentForm.data[0]._id;
-                                }
-                            }
-                        }
-
                         if (hasAnyVal) {
                             formObj.data.push(rec);
                         }
                     });
-
-                    delete formObj.rawRows;
-                    delete formObj.hasPivotCol;
                 });
+
+                // 4. Detección automática y robusta de relaciones jerárquicas (Pivotes)
+                // Analizamos las hojas de atrás hacia adelante (o desde la segunda en adelante)
+                for (let i = 1; i < tempForms.length; i++) {
+                    let childForm = tempForms[i];
+
+                    // Buscamos cuál de los formularios anteriores (potencial padre) tiene valores 
+                    // que coincidan con alguna columna de este formulario hijo.
+                    let bestParentForm = null;
+                    let bestParentField = null;
+                    let matchingColIndex = -1;
+
+                    for (let p = 0; p < i; p++) {
+                        let parentForm = tempForms[p];
+                        if (parentForm.data.length === 0) continue;
+
+                        // Revisar cada columna del hijo para ver si sus valores coinciden con campos del padre
+                        childForm.fields.forEach((childField, cIdx) => {
+                            let matchCount = 0;
+                            childForm.data.forEach(childRec => {
+                                let val = String(childRec[childField.name] || '').trim().toLowerCase();
+                                if (!val) return;
+                                
+                                // Comprobar si este valor existe en los registros del padre
+                                let foundInParent = parentForm.data.some(parentRec => 
+                                    Object.values(parentRec).some(pv => String(pv || '').trim().toLowerCase() === val)
+                                );
+                                if (foundInParent) matchCount++;
+                            });
+
+                            // Si hay una coincidencia significativa de datos, este es el campo pivote/relación
+                            if (matchCount > 0 && matchCount >= Math.min(2, childForm.data.length)) {
+                                bestParentForm = parentForm;
+                                bestParentField = parentForm.fields[0].name;
+                                matchingColIndex = cIdx;
+                            }
+                        });
+
+                        if (bestParentForm) break;
+                    }
+
+                    // Si no se encontró por coincidencia de datos pero los nombres de las columnas o jerarquía lo sugieren, 
+                    // usar el formulario inmediatamente anterior como padre.
+                    if (!bestParentForm && i > 0) {
+                        bestParentForm = tempForms[i - 1];
+                        bestParentField = bestParentForm.fields[0].name;
+                        // Asumimos la primera columna como la de enlace
+                        matchingColIndex = 0;
+                    }
+
+                    if (bestParentForm) {
+                        childForm.pivotFormId = bestParentForm.id;
+                        childForm.pivotField = bestParentField;
+
+                        // Vincular cada registro hijo al _id correcto del padre usando el valor de la columna de enlace
+                        childForm.data.forEach(childRec => {
+                            if (matchingColIndex >= 0 && childForm.fields[matchingColIndex]) {
+                                let searchKey = String(childRec[childForm.fields[matchingColIndex].name] || '').trim().toLowerCase();
+                                
+                                let matchedParentRecord = bestParentForm.data.find(pr => 
+                                    Object.values(pr).some(pv => String(pv || '').trim().toLowerCase() === searchKey)
+                                );
+
+                                if (matchedParentRecord) {
+                                    childRec._parentId = matchedParentRecord._id;
+                                }
+                            }
+                            
+                            // Si aún no tiene _parentId asignado, asignarlo al primer registro del padre como respaldo
+                            if (!childRec._parentId && bestParentForm.data.length > 0) {
+                                childRec._parentId = bestParentForm.data[0]._id;
+                            }
+                        });
+
+                        // Opcional: si la columna de enlace es redundante porque ya está el enlace lógico, se puede conservar o quitar. 
+                        // Se deja intacta para que el usuario la vea en los datos tabulares.
+                    }
+                }
+
+                // Limpieza final de propiedades temporales
+                tempForms.forEach(f => delete f.rawRows);
 
                 if (tempForms.length > 0) {
                     formsRegistry = tempForms;
                     recordIdCounter = Math.max(...formsRegistry.flatMap(f => f.data.map(r => r._id || 0)), 0) + 1;
                     activeIndexByForm = {};
                     showLauncher();
-                    alert('¡Datos de Excel importados y vinculados correctamente!');
+                    alert('¡Datos y dependencias de Excel cargados exitosamente!');
                 } else {
                     alert('No se pudieron procesar datos válidos de las hojas.');
                 }
