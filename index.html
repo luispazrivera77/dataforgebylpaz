@@ -33,9 +33,35 @@
         --depth-2: #c97fa0;
         --depth-3: #8c86d9;
 
+        --container-shadow: 0 0 50px rgba(0, 0, 0, 0.8), inset 0 0 20px rgba(217, 166, 83, 0.02);
+
         --font-display: 'Fraunces', Georgia, serif;
         --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
         --font-body: 'Inter', system-ui, sans-serif;
+    }
+
+    /* Modo claro — se activa poniendo data-theme="light" en <html>.
+       Redefine solo la paleta neutra y el dorado (más oscuro, para
+       mantener buen contraste sobre fondo blanco); el resto de colores
+       de acento (éxito, peligro, profundidad) se mantienen iguales
+       porque ya funcionan bien en ambos fondos. */
+    html[data-theme="light"] {
+        --bg-app: #f2ede2;
+        --bg-screen: #ffffff;
+        --surface: #f7f4ed;
+        --surface-2: #efe8d8;
+        --surface-hover: #e6dcc3;
+        --border: #ddd0b0;
+        --border-gold: rgba(168, 103, 31, 0.35);
+        --text: #211c12;
+        --text-dim: #6b6152;
+        --text-faint: #a19680;
+
+        --gold: #a8671f;
+        --gold-hover: #c17f2c;
+        --gold-soft: rgba(168, 103, 31, 0.12);
+
+        --container-shadow: 0 0 30px rgba(90, 70, 30, 0.12), inset 0 0 12px rgba(168, 103, 31, 0.03);
     }
 
     * { box-sizing: border-box; }
@@ -66,7 +92,7 @@
         display: flex;
         flex-direction: column;
         position: relative;
-        box-shadow: 0 0 50px rgba(0, 0, 0, 0.8), inset 0 0 20px rgba(217, 166, 83, 0.02);
+        box-shadow: var(--container-shadow);
         overflow-x: hidden;
     }
 
@@ -876,6 +902,16 @@
 </style>
 </head>
 <body>
+<script>
+    // Aplica el tema guardado ANTES de pintar el resto de la página,
+    // para evitar el parpadeo de "oscuro y luego cambia a claro".
+    (function () {
+        try {
+            var saved = localStorage.getItem('dataforge-theme');
+            if (saved === 'light') document.documentElement.setAttribute('data-theme', 'light');
+        } catch (e) {}
+    })();
+</script>
 
 <div class="app-container">
 
@@ -889,6 +925,9 @@
                 <button onclick="startTour()" class="btn btn-ghost-gold btn-tiny" data-tip="Iniciar Tour Guiado" style="gap:5px;">
                     <svg class="ic" viewBox="0 0 24 24" style="width:13px;height:13px;"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
                     Tour
+                </button>
+                <button id="btn-theme-toggle" onclick="toggleTheme()" class="btn btn-ghost-gold btn-icon-only" aria-label="Cambiar a modo claro" data-tip="Cambiar a modo claro">
+                    <svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
                 </button>
                 <button onclick="openReadmeModal()" class="btn btn-ghost-gold btn-icon-only" aria-label="Guía de uso y documentación" data-tip="Documentación">
                     <svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
@@ -917,7 +956,7 @@
 
         <!-- Hero / Propuesta de Valor -->
         <div class="hero-banner">
-            <h1 class="hero-title">Trabaja, Diseña y sincroniza datos sin fricción</h1>
+            <h1 class="hero-title">Trabaja, diseña y sincroniza...</h1>
             <p class="hero-desc">¿Te llegó un Excel enorme por WhatsApp y andas solo con el celular? Tranquilo: impórtalo a DataForge y conviértelo al instante en un formulario fácil de usar, sin computador de por medio. Cuando termines, lo exportas y lo reenvías tal cual.</p>
         </div>
 
@@ -2274,21 +2313,23 @@
     }
 
     function bindMiniTip(el) {
-        const text = el.getAttribute('data-tip');
-        if (!text) return;
+        // Se lee el atributo en cada evento (no una sola vez al inicio),
+        // porque algunos botones —como el de cambio de tema— actualizan
+        // su texto de ayuda dinámicamente.
+        function currentText() { return el.getAttribute('data-tip'); }
 
         // Escritorio: hover
-        el.addEventListener('mouseenter', () => showMiniTip(el, text));
+        el.addEventListener('mouseenter', () => { const t = currentText(); if (t) showMiniTip(el, t); });
         el.addEventListener('mouseleave', hideMiniTip);
-        el.addEventListener('focus', () => showMiniTip(el, text));
+        el.addEventListener('focus', () => { const t = currentText(); if (t) showMiniTip(el, t); });
         el.addEventListener('blur', hideMiniTip);
 
         // Móvil: mantener presionado para ver la burbuja sin activar el botón
         el.addEventListener('touchstart', () => {
             el.dataset.tipShown = '';
             miniTipPressTimer = setTimeout(() => {
-                showMiniTip(el, text);
-                el.dataset.tipShown = '1';
+                const t = currentText();
+                if (t) { showMiniTip(el, t); el.dataset.tipShown = '1'; }
             }, 400);
         }, { passive: true });
 
@@ -2311,7 +2352,41 @@
         document.querySelectorAll('[data-tip]').forEach(bindMiniTip);
     }
 
+    // ============================================================
+    // MODO CLARO / MODO OSCURO
+    // El tema se guarda en localStorage para recordarlo entre visitas
+    // (esta app se aloja en GitHub Pages, no es un artifact embebido,
+    // así que sí puede usar almacenamiento del navegador). El script
+    // al inicio del <body> ya aplicó el tema guardado antes de pintar
+    // la pantalla; aquí solo se sincroniza el ícono del botón.
+    // ============================================================
+
+    const ICON_SUN = '<svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>';
+    const ICON_MOON = '<svg class="ic" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z"/></svg>';
+
+    function currentTheme() {
+        return document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+    }
+
+    function applyThemeIcon() {
+        const btn = document.getElementById('btn-theme-toggle');
+        if (!btn) return;
+        const isLight = currentTheme() === 'light';
+        btn.innerHTML = isLight ? ICON_MOON : ICON_SUN;
+        const label = isLight ? 'Cambiar a modo oscuro' : 'Cambiar a modo claro';
+        btn.setAttribute('data-tip', label);
+        btn.setAttribute('aria-label', label);
+    }
+
+    function toggleTheme() {
+        const next = currentTheme() === 'light' ? 'dark' : 'light';
+        document.documentElement.setAttribute('data-theme', next);
+        try { localStorage.setItem('dataforge-theme', next); } catch (e) {}
+        applyThemeIcon();
+    }
+
     initMiniTips();
+    applyThemeIcon();
     showLauncher();
 </script>
 
