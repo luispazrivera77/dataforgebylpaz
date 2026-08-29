@@ -1071,7 +1071,6 @@
         if (!form.pivotFormId) return form.data;
         const parentRecord = getActiveRecord(form.pivotFormId);
         if (!parentRecord) return [];
-        // Filtro estricto: solo los registros hijos cuyo _parentId coincida exactamente con el id del padre actual
         return form.data.filter(r => r._parentId === parentRecord._id);
     }
 
@@ -1364,18 +1363,6 @@
         renderBuilderFields();
     }
 
-    // ============================================================
-    // CAMBIO DE RELACIÓN PADRE
-    // Se dispara al tocar el selector "Depende de". Un registro hijo
-    // solo puede pertenecer a UN padre exacto (por _id), nunca por
-    // coincidencia de texto entre campos — eso es ambiguo y es lo que
-    // producía registros mezclados entre distintos padres. Por eso,
-    // cambiar la relación (o quitarla) reinicia los datos de este
-    // formulario: los registros nuevos se cargan correctamente desde
-    // el registro padre real (botón "Ver [formulario] →"), con su
-    // _parentId asignado en el momento, sin ambigüedad posible.
-    // ============================================================
-
     function handlePivotChange() {
         const formObj = getForm(editingFormId);
         if (!formObj) return;
@@ -1389,7 +1376,6 @@
                 `Cambiar esta relación borrará los ${countFilledRecords(formObj, formObj.data)} registro(s) ya cargados en "${formObj.title || 'este formulario'}", porque no tienen un registro padre real asignado. Después de guardar, podrás volver a cargarlos entrando desde el registro padre correspondiente. ¿Continuar?`
             );
             if (!proceed) {
-                // Revertir el select a la relación actual, sin tocar nada más
                 pivotSelect.value = formObj.pivotFormId ? `${formObj.pivotFormId}::${formObj.pivotField}` : '';
                 return;
             }
@@ -1418,13 +1404,6 @@
         formObj.title = document.getElementById('form-title-input').value || 'Sin nombre';
         formObj.webhook = document.getElementById('form-webhook-input').value.trim();
 
-        // La relación padre/hijo (pivotFormId, pivotField) y el eventual
-        // reinicio de datos ya se resolvieron en handlePivotChange(), que
-        // se dispara al cambiar el select. Aquí solo reflejamos lo que
-        // haya en el select para mantener todo sincronizado — nunca se
-        // reasigna _parentId por coincidencia de texto: eso es lo que
-        // causaba que registros hijos quedaran mezclados entre distintos
-        // padres.
         const pivotSelect = document.getElementById('form-pivot-source');
         if (pivotSelect && pivotSelect.value) {
             const parts = pivotSelect.value.split('::');
@@ -1804,13 +1783,21 @@
             try {
                 const workbook = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
                 let tempForms = [], nextId = 1;
+                
+                // 1. Primer paso: Crear todas las estructuras de formularios y sus registros básicos
                 workbook.SheetNames.forEach(sheetName => {
                     const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { header: 1 });
                     if (rows.length === 0) return;
                     let header = rows[0].map(h => String(h || '').trim()).filter(Boolean);
                     if (header.length === 0) return;
+
+                    const formId = nextId++;
                     tempForms.push({
-                        id: nextId++, title: sheetName, webhook: "", pivotFormId: null, pivotField: "",
+                        id: formId, 
+                        title: sheetName, 
+                        webhook: "", 
+                        pivotFormId: null, 
+                        pivotField: "",
                         fields: header.map(name => ({ name, type: 'text', required: false })),
                         data: rows.slice(1).map(r => {
                             let rec = { _id: nextRecordId(), _parentId: null };
@@ -1819,13 +1806,43 @@
                         }).filter(r => recordHasData({ fields: header.map(name => ({name})) }, r))
                     });
                 });
+
+                // 2. Segundo paso: Detectar automáticamente relaciones Padre-Hijo (ej. columna "Obra")
+                let obrasForm = tempForms.find(f => f.title.toLowerCase() === 'obras');
+                
+                if (obrasForm) {
+                    tempForms.forEach(form => {
+                        if (form.id === obrasForm.id) return;
+                        
+                        const obraField = form.fields.find(f => f.name.toLowerCase() === 'obra');
+                        if (obraField) {
+                            form.pivotFormId = obrasForm.id;
+                            form.pivotField = obraField.name;
+
+                            form.data.forEach(record => {
+                                const valObra = String(record[obraField.name] || '').trim().toLowerCase();
+                                const matchedParent = obrasForm.data.find(parentRec => {
+                                    const parentFieldKey = obrasForm.fields[0].name;
+                                    const parentVal = String(parentRec[parentFieldKey] || '').trim().toLowerCase();
+                                    return parentVal === valObra;
+                                });
+
+                                if (matchedParent) {
+                                    record._parentId = matchedParent._id;
+                                }
+                            });
+                        }
+                    });
+                }
+
                 if (tempForms.length > 0) {
                     formsRegistry = tempForms;
                     recordIdCounter = Math.max(...formsRegistry.flatMap(f => f.data.map(r => r._id || 0)), 0) + 1;
                     showLauncher();
-                    showToast("Datos importados exitosamente");
+                    showToast("Datos y relaciones importados exitosamente");
                 }
             } catch (err) {
+                console.error(err);
                 alert('Error al leer el archivo Excel.');
             } finally {
                 event.target.value = '';
