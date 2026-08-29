@@ -430,6 +430,7 @@
     }
 
     .empty-state .ring {
+        position: relative;
         width: 68px;
         height: 68px;
         border-radius: 50%;
@@ -448,6 +449,55 @@
         color: #0a0d14;
         transform: scale(1.05);
         box-shadow: 0 0 20px rgba(217, 166, 83, 0.4);
+    }
+
+    /* Línea brillante que recorre el borde del círculo, para invitar
+       a tocar el botón "+". Es un anillo (conic-gradient) recortado
+       a solo un trazo fino mediante mask, que gira sin parar. Se
+       detiene al pasar el mouse/tocar, para no competir con el
+       feedback de hover. */
+    .empty-state .ring::before {
+        content: "";
+        position: absolute;
+        inset: -4px;
+        border-radius: 50%;
+        padding: 2px;
+        background: conic-gradient(from 0deg,
+            transparent 0deg,
+            transparent 250deg,
+            var(--gold-hover) 300deg,
+            #fff7e6 330deg,
+            var(--gold-hover) 345deg,
+            transparent 360deg);
+        -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+        -webkit-mask-composite: xor;
+        mask-composite: exclude;
+        animation: ringShineSpin 2.6s linear infinite;
+        pointer-events: none;
+    }
+
+    .empty-state .ring:hover::before { animation-play-state: paused; opacity: 0; }
+
+    /* Pulso de luz en el signo "+", sincronizado a un ritmo más lento
+       para que no compita visualmente con el giro del anillo. */
+    .empty-state .ring svg.ic {
+        animation: plusGlowPulse 2.4s ease-in-out infinite;
+    }
+
+    .empty-state .ring:hover svg.ic { animation: none; }
+
+    @keyframes ringShineSpin {
+        to { transform: rotate(360deg); }
+    }
+
+    @keyframes plusGlowPulse {
+        0%, 100% { filter: drop-shadow(0 0 0px var(--gold)); opacity: 0.8; }
+        50% { filter: drop-shadow(0 0 7px var(--gold-hover)); opacity: 1; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .empty-state .ring::before { animation: none; opacity: 0; }
+        .empty-state .ring svg.ic { animation: none; }
     }
 
     .empty-state h3 {
