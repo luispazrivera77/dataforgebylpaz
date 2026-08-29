@@ -671,6 +671,42 @@
         margin: 16px 0;
     }
 
+    /* Estilos del Tour Guiado / Burbujas Interactivas */
+    #tour-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(3, 5, 8, 0.7);
+        backdrop-filter: blur(2px);
+        z-index: 19999;
+        display: none;
+    }
+    #tour-overlay.show { display: block; }
+
+    .tour-bubble {
+        position: fixed;
+        background: var(--surface-2);
+        border: 1px solid var(--border-gold);
+        border-radius: 14px;
+        padding: 18px 22px;
+        width: 320px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+        z-index: 20000;
+        display: none;
+        flex-direction: column;
+        gap: 12px;
+        animation: fadeIn 0.3s ease;
+    }
+    .tour-bubble.show { display: flex; }
+    .tour-title { font-family: var(--font-display); font-size: 15px; font-weight: 600; color: var(--gold); margin: 0; }
+    .tour-text { font-size: 13px; color: var(--text-dim); line-height: 1.5; margin: 0; }
+    .tour-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 4px; }
+    .tour-step-indicator { font-family: var(--font-mono); font-size: 10px; color: var(--text-faint); }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(6px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
     /* Modal */
     .modal-overlay {
         position: fixed;
@@ -734,13 +770,17 @@
             <div style="display:flex; gap:6px;">
                 <input type="file" id="import-file-input" accept=".xlsx, .xls" style="display:none;" onchange="importExcelData(event)">
                 
+                <button onclick="startTour()" class="btn btn-ghost-gold btn-tiny" title="Iniciar Tour Guiado" style="gap:5px;">
+                    <svg class="ic" viewBox="0 0 24 24" style="width:13px;height:13px;"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                    Tour
+                </button>
                 <button onclick="openReadmeModal()" class="btn btn-ghost-gold btn-icon-only" aria-label="Guía de uso y documentación" title="Documentación">
                     <svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
                 </button>
                 <button onclick="resetAppCompletely()" class="btn btn-ghost-gold btn-icon-only" aria-label="Reiniciar aplicación" title="Reiniciar aplicación">
                     <svg class="ic" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
                 </button>
-                <button onclick="document.getElementById('import-file-input').click()" class="btn btn-ghost-gold btn-icon-only" aria-label="Cargar desde Excel" title="Cargar Excel">
+                <button id="btn-import-excel" onclick="document.getElementById('import-file-input').click()" class="btn btn-ghost-gold btn-icon-only" aria-label="Cargar desde Excel" title="Cargar Excel">
                     <svg class="ic" viewBox="0 0 24 24"><path d="M12 21v-11"/><path d="M7.5 13.5 12 9l4.5 4.5"/><path d="M5 3h14"/></svg>
                 </button>
                 <button id="export-btn" onclick="exportAllData()" class="btn btn-ghost-gold btn-icon-only" aria-label="Exportar a Excel" title="Exportar a Excel" style="display:none;">
@@ -752,7 +792,7 @@
                 <button id="export-json-btn" onclick="exportDataJSON()" class="btn btn-ghost-gold btn-icon-only" aria-label="Exportar a JSON" title="Exportar JSON" style="display:none;">
                     <svg class="ic" viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
                 </button>
-                <button onclick="startNewForm()" class="btn btn-gold" aria-label="Crear nuevo formulario" title="Crear formulario">
+                <button id="btn-new-form" onclick="startNewForm()" class="btn btn-gold" aria-label="Crear nuevo formulario" title="Crear formulario">
                     <svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
                     Nuevo
                 </button>
@@ -945,6 +985,20 @@
 
 </div>
 
+<!-- Elementos del Tour Guiado -->
+<div id="tour-overlay"></div>
+<div id="tour-bubble" class="tour-bubble">
+    <p id="tour-title" class="tour-title">Título del paso</p>
+    <p id="tour-text" class="tour-text">Descripción de la función actual.</p>
+    <div class="tour-footer">
+        <span id="tour-step-indicator" class="tour-step-indicator">Paso 1 de 4</span>
+        <div style="display:flex; gap:6px;">
+            <button onclick="endTour()" class="btn btn-tiny btn-ghost-gold" style="padding: 5px 10px;">Salir</button>
+            <button onclick="nextTourStep()" class="btn btn-tiny btn-gold" style="padding: 5px 12px;">Siguiente →</button>
+        </div>
+    </div>
+</div>
+
 <!-- Modal README / Guía -->
 <div id="readme-modal" class="modal-overlay hidden">
     <div class="modal-content">
@@ -989,6 +1043,79 @@
     let navStack = [];
     let viewMode = 'table';
     let renderedRecordId = null;
+
+    // Sistema de Tour Guiado por Burbujas
+    let currentTourStep = 0;
+    const tourSteps = [
+        {
+            title: "👋 ¡Bienvenido a DataForge!",
+            text: "Este tour interactivo te mostrará rápidamente cómo aprovechar todas las funciones de la aplicación para gestionar tus datos y hojas Excel.",
+            target: null
+        },
+        {
+            title: "📥 Cargar archivo Excel",
+            text: "Aquí puedes importar tus bases de datos completas en formato .xlsx o .xls. El sistema detectará automáticamente relaciones y fechas.",
+            target: "btn-import-excel"
+        },
+        {
+            title: "🔍 Buscador Global instantáneo",
+            text: "Escribe cualquier término en esta barra para buscar registros en todos los formularios y campos de la aplicación de manera simultánea.",
+            target: "global-search-container"
+        },
+        {
+            title: "✨ Crear Formularios",
+            text: "Diseña nuevos formularios personalizados desde cero, agrega campos con validaciones o define relaciones jerárquicas Padre-Hijo.",
+            target: "btn-new-form"
+        }
+    ];
+
+    function startTour() {
+        showLauncher();
+        currentTourStep = 0;
+        document.getElementById('tour-overlay').classList.add('show');
+        document.getElementById('tour-bubble').classList.add('show');
+        renderTourStep();
+    }
+
+    function endTour() {
+        document.getElementById('tour-overlay').classList.remove('show');
+        document.getElementById('tour-bubble').classList.remove('show');
+    }
+
+    function nextTourStep() {
+        currentTourStep++;
+        if (currentTourStep >= tourSteps.length) {
+            endTour();
+            showToast("¡Tour completado con éxito!");
+            return;
+        }
+        renderTourStep();
+    }
+
+    function renderTourStep() {
+        const step = tourSteps[currentTourStep];
+        document.getElementById('tour-title').textContent = step.title;
+        document.getElementById('tour-text').textContent = step.text;
+        document.getElementById('tour-step-indicator').textContent = `Paso ${currentTourStep + 1} de ${tourSteps.length}`;
+
+        const bubble = document.getElementById('tour-bubble');
+        if (step.target) {
+            const el = document.getElementById(step.target);
+            if (el) {
+                const rect = el.getBoundingClientRect();
+                bubble.style.top = `${rect.bottom + 12}px`;
+                bubble.style.left = `${Math.max(16, rect.left - 20)}px`;
+            } else {
+                bubble.style.top = '40%';
+                bubble.style.left = '50%';
+                bubble.style.transform = 'translate(-50%, -50%)';
+            }
+        } else {
+            bubble.style.top = '40%';
+            bubble.style.left = '50%';
+            bubble.style.transform = 'translate(-50%, -50%)';
+        }
+    }
 
     function showToast(msg) {
         const toast = document.getElementById('toast-notification');
