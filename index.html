@@ -1781,12 +1781,22 @@
         const reader = new FileReader();
         reader.onload = function(e) {
             try {
-                const workbook = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+                const workbook = XLSX.read(new Uint8Array(e.target.result), { type: 'array', cellDates: true });
                 let tempForms = [], nextId = 1;
                 
-                // 1. Primer paso: Crear todas las estructuras de formularios y sus registros básicos
+                function formatCellDate(val) {
+                    if (!val) return '';
+                    if (val instanceof Date && !isNaN(val)) {
+                        const year = val.getUTCFullYear();
+                        const month = String(val.getUTCMonth() + 1).padStart(2, '0');
+                        const day = String(val.getUTCDate()).padStart(2, '0');
+                        return `${year}-${month}-${day}`;
+                    }
+                    return String(val);
+                }
+
                 workbook.SheetNames.forEach(sheetName => {
-                    const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { header: 1 });
+                    const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { header: 1, raw: false, dateNF: 'yyyy-mm-dd' });
                     if (rows.length === 0) return;
                     let header = rows[0].map(h => String(h || '').trim()).filter(Boolean);
                     if (header.length === 0) return;
@@ -1801,13 +1811,15 @@
                         fields: header.map(name => ({ name, type: 'text', required: false })),
                         data: rows.slice(1).map(r => {
                             let rec = { _id: nextRecordId(), _parentId: null };
-                            header.forEach((h, i) => { rec[h] = r[i] !== undefined ? String(r[i]) : ''; });
+                            header.forEach((h, i) => {
+                                let val = r[i] !== undefined ? r[i] : '';
+                                rec[h] = formatCellDate(val);
+                            });
                             return rec;
                         }).filter(r => recordHasData({ fields: header.map(name => ({name})) }, r))
                     });
                 });
 
-                // 2. Segundo paso: Detectar automáticamente relaciones Padre-Hijo (ej. columna "Obra")
                 let obrasForm = tempForms.find(f => f.title.toLowerCase() === 'obras');
                 
                 if (obrasForm) {
