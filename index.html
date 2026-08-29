@@ -212,6 +212,29 @@
         opacity: 0;
     }
 
+    .empty-desc-header {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        width: 100%;
+    }
+    .empty-desc-header h3 { margin: 0; }
+    .empty-toggle-btn { flex-shrink: 0; min-width: 32px; min-height: 32px; margin-top: 0; }
+    .empty-toggle-btn svg.ic { width: 15px; height: 15px; }
+
+    .empty-desc {
+        overflow: hidden;
+        max-height: 240px;
+        opacity: 1;
+        transition: max-height 0.25s ease, opacity 0.2s ease, margin 0.25s ease;
+    }
+    .empty-desc.collapsed {
+        max-height: 0;
+        opacity: 0;
+        margin: 0;
+    }
+
     h2 {
         font-family: var(--font-display);
         font-size: 20px;
@@ -936,6 +959,7 @@
         .empty-state .ring { width: 58px; height: 58px; }
         .empty-state h3 { font-size: 16px; }
         .empty-state p { font-size: 12.5px; }
+        .empty-desc-header { gap: 4px; }
         .app-icon-card { padding: 12px 14px; gap: 10px; }
         .app-title { font-size: 14.5px; }
         .record-actions-row .btn { font-size: 10px; padding: 9px 4px; gap: 4px; }
@@ -1022,8 +1046,13 @@
             <div class="ring" onclick="document.getElementById('import-file-input').click()" data-tip="Haz clic para importar tu Excel o base de datos">
                 <svg class="ic" viewBox="0 0 24 24" style="width:24px;height:24px;"><path d="M12 5v14M5 12h14"/></svg>
             </div>
-            <h3>Comienza con DataForge</h3>
-            <p>Importa tu excel o base de datos y trabaja fácil... o crea tu primer formulario desde cero... o elige una de nuestras 5 plantillas prediseñadas que además podrá exportar para revisar y aprender.</p>
+            <div class="empty-desc-header">
+                <h3>Comienza con DataForge</h3>
+                <button id="empty-toggle-btn" onclick="toggleEmptyDesc()" class="btn btn-ghost-gold btn-icon-only empty-toggle-btn" aria-label="Contraer descripción" data-tip="Contraer descripción">
+                    <svg class="ic" viewBox="0 0 24 24"><path d="M18 15l-6-6-6 6"/></svg>
+                </button>
+            </div>
+            <p class="empty-desc" id="empty-desc">Importa tu excel o base de datos y trabaja fácil... o crea tu primer formulario desde cero... o elige una de nuestras 5 plantillas prediseñadas que además podrá exportar para revisar y aprender.</p>
             <div class="templates-grid">
                 <div class="template-card" onclick="loadTemplate('obras')">
                     <span>🏗️ Obras y Compras</span>
@@ -2510,9 +2539,46 @@
         applyHeroToggleIcon();
     }
 
+    // ============================================================
+    // CONTRAER / EXPANDIR EL TEXTO DEL ESTADO VACÍO
+    // ("Comienza con DataForge") — mismo mecanismo que el hero:
+    // funciona igual en PC y en celular, y recuerda la preferencia
+    // entre visitas. Por defecto arranca expandido en ambos casos.
+    // ============================================================
+
+    function applyEmptyToggleIcon() {
+        const btn = document.getElementById('empty-toggle-btn');
+        const desc = document.getElementById('empty-desc');
+        if (!btn || !desc) return;
+        const collapsed = desc.classList.contains('collapsed');
+        btn.innerHTML = collapsed ? ICON_CHEVRON_DOWN : ICON_CHEVRON_UP;
+        const label = collapsed ? 'Expandir descripción' : 'Contraer descripción';
+        btn.setAttribute('data-tip', label);
+        btn.setAttribute('aria-label', label);
+    }
+
+    function toggleEmptyDesc() {
+        const desc = document.getElementById('empty-desc');
+        if (!desc) return;
+        desc.classList.toggle('collapsed');
+        try { localStorage.setItem('dataforge-empty-collapsed', desc.classList.contains('collapsed') ? '1' : '0'); } catch (e) {}
+        applyEmptyToggleIcon();
+    }
+
+    function initEmptyCollapse() {
+        const desc = document.getElementById('empty-desc');
+        if (!desc) return;
+        let saved = null;
+        try { saved = localStorage.getItem('dataforge-empty-collapsed'); } catch (e) {}
+        const shouldCollapse = saved === '1';
+        desc.classList.toggle('collapsed', shouldCollapse);
+        applyEmptyToggleIcon();
+    }
+
     initMiniTips();
     applyThemeIcon();
     initHeroCollapse();
+    initEmptyCollapse();
     showLauncher();
 </script>
 
