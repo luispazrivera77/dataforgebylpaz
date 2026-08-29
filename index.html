@@ -169,6 +169,20 @@
         gap: 6px;
     }
 
+    .hero-banner-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 10px;
+    }
+
+    .hero-toggle-btn {
+        flex-shrink: 0;
+        padding: 5px;
+        margin-top: -2px;
+    }
+    .hero-toggle-btn svg.ic { width: 15px; height: 15px; }
+
     .hero-title {
         font-family: var(--font-display);
         font-size: 16px;
@@ -182,6 +196,14 @@
         color: var(--text-dim);
         line-height: 1.5;
         margin: 0;
+        overflow: hidden;
+        max-height: 240px;
+        opacity: 1;
+        transition: max-height 0.25s ease, opacity 0.2s ease, margin-top 0.25s ease;
+    }
+    .hero-desc.collapsed {
+        max-height: 0;
+        opacity: 0;
     }
 
     h2 {
@@ -974,8 +996,13 @@
 
         <!-- Hero / Propuesta de Valor -->
         <div class="hero-banner">
-            <h1 class="hero-title">Trabaja, diseña y sincroniza...</h1>
-            <p class="hero-desc">¿Te llegó un Excel enorme por WhatsApp y andas solo con el celular? Tranquilo: impórtalo a DataForge y conviértelo al instante en un formulario fácil de usar, sin computador de por medio. Cuando termines, lo exportas y lo reenvías tal cual.</p>
+            <div class="hero-banner-header">
+                <h1 class="hero-title">Trabaja, diseña y sincroniza...</h1>
+                <button id="hero-toggle-btn" onclick="toggleHeroDesc()" class="btn btn-ghost-gold btn-icon-only hero-toggle-btn" aria-label="Contraer descripción" data-tip="Contraer descripción">
+                    <svg class="ic" viewBox="0 0 24 24"><path d="M18 15l-6-6-6 6"/></svg>
+                </button>
+            </div>
+            <p class="hero-desc" id="hero-desc">¿Te llegó un Excel enorme por WhatsApp y andas solo con el celular? Tranquilo: impórtalo a DataForge y conviértelo al instante en un formulario fácil de usar, sin computador de por medio. Cuando termines, lo exportas y lo reenvías tal cual.</p>
         </div>
 
         <div class="search-box-wrap" id="global-search-container">
@@ -2435,8 +2462,51 @@
         applyThemeIcon();
     }
 
+    // ============================================================
+    // CONTRAER / EXPANDIR EL TEXTO DE PORTADA (hero)
+    // En celular, el párrafo de bienvenida ocupa mucho espacio y
+    // empuja las plantillas prediseñadas fuera de la vista sin hacer
+    // scroll. Este botón lo contrae a solo el título, y recuerda la
+    // preferencia entre visitas. Por defecto, en pantallas angostas
+    // arranca contraído (para priorizar ver las plantillas); en
+    // pantallas más anchas arranca expandido.
+    // ============================================================
+
+    const ICON_CHEVRON_UP = '<svg class="ic" viewBox="0 0 24 24"><path d="M18 15l-6-6-6 6"/></svg>';
+    const ICON_CHEVRON_DOWN = '<svg class="ic" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>';
+
+    function applyHeroToggleIcon() {
+        const btn = document.getElementById('hero-toggle-btn');
+        const desc = document.getElementById('hero-desc');
+        if (!btn || !desc) return;
+        const collapsed = desc.classList.contains('collapsed');
+        btn.innerHTML = collapsed ? ICON_CHEVRON_DOWN : ICON_CHEVRON_UP;
+        const label = collapsed ? 'Expandir descripción' : 'Contraer descripción';
+        btn.setAttribute('data-tip', label);
+        btn.setAttribute('aria-label', label);
+    }
+
+    function toggleHeroDesc() {
+        const desc = document.getElementById('hero-desc');
+        if (!desc) return;
+        desc.classList.toggle('collapsed');
+        try { localStorage.setItem('dataforge-hero-collapsed', desc.classList.contains('collapsed') ? '1' : '0'); } catch (e) {}
+        applyHeroToggleIcon();
+    }
+
+    function initHeroCollapse() {
+        const desc = document.getElementById('hero-desc');
+        if (!desc) return;
+        let saved = null;
+        try { saved = localStorage.getItem('dataforge-hero-collapsed'); } catch (e) {}
+        const shouldCollapse = saved !== null ? saved === '1' : window.innerWidth <= 480;
+        desc.classList.toggle('collapsed', shouldCollapse);
+        applyHeroToggleIcon();
+    }
+
     initMiniTips();
     applyThemeIcon();
+    initHeroCollapse();
     showLauncher();
 </script>
 
