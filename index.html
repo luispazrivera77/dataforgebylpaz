@@ -348,6 +348,15 @@
         justify-content: center;
         color: var(--gold);
         background: var(--gold-soft);
+        cursor: pointer;
+        transition: 0.2s;
+    }
+
+    .empty-state .ring:hover {
+        background: var(--gold);
+        color: #0a0d14;
+        transform: scale(1.05);
+        box-shadow: 0 0 20px rgba(217, 166, 83, 0.4);
     }
 
     .empty-state h3 {
@@ -361,7 +370,7 @@
         font-size: 13px;
         color: var(--text-dim);
         margin: 0;
-        max-width: 320px;
+        max-width: 380px;
         line-height: 1.6;
     }
 
@@ -813,11 +822,11 @@
         <div id="global-search-results" class="global-search-results" style="display:none;"></div>
 
         <div id="launcher-empty" class="empty-state" style="display:none;">
-            <div class="ring">
+            <div class="ring" onclick="document.getElementById('import-file-input').click()" title="Haz clic para importar tu Excel o base de datos">
                 <svg class="ic" viewBox="0 0 24 24" style="width:24px;height:24px;"><path d="M12 5v14M5 12h14"/></svg>
             </div>
             <h3>Comienza con DataForge</h3>
-            <p>Crea tu primer formulario desde cero o elige una de nuestras 5 plantillas prediseñadas:</p>
+            <p>Importa tu excel o base de datos y trabaja fácil... o crea tu primer formulario desde cero... o elige una de nuestras 5 plantillas prediseñadas que además podrá exportar para revisar y aprender.</p>
             <div class="templates-grid">
                 <div class="template-card" onclick="loadTemplate('obras')">
                     <span>🏗️ Obras y Compras</span>
@@ -1265,41 +1274,105 @@
             formsRegistry = [
                 {
                     id: 1, title: "Obras", webhook: "", pivotFormId: null, pivotField: "",
-                    fields: [{ name: "Nombre Obra", type: "text", required: true }, { name: "Cliente", type: "text", required: false }],
-                    data: [{ _id: nextRecordId(), _parentId: null, "Nombre Obra": "Edificio Los Aromos", "Cliente": "Inmobiliaria Sur" }]
+                    fields: [
+                        { name: "Nombre Obra", type: "text", required: true },
+                        { name: "Dirección", type: "text", required: false },
+                        { name: "Fecha inicio", type: "date", required: true },
+                        { name: "Fecha término", type: "date", required: false },
+                        { name: "Presupuesto", type: "number", required: true },
+                        { name: "Saldo obra", type: "number", required: false }
+                    ],
+                    data: [
+                        { _id: 101, _parentId: null, "Nombre Obra": "Edificio Los Aromos", "Dirección": "Casa 98 Condominio Santuario", "Fecha inicio": "2026-07-27", "Fecha término": "2026-08-07", "Presupuesto": "1000000", "Saldo obra": "-540011" },
+                        { _id: 102, _parentId: null, "Nombre Obra": "Ironcar", "Dirección": "Pdte. Alessandri 1888, Coquimbo", "Fecha inicio": "2026-07-13", "Fecha término": "2026-12-13", "Presupuesto": "115000000", "Saldo obra": "79568577" },
+                        { _id: 103, _parentId: null, "Nombre Obra": "Combustible 2026", "Dirección": "Los Criollos 2552", "Fecha inicio": "2026-08-03", "Fecha término": "2026-12-31", "Presupuesto": "1000", "Saldo obra": "-594744" }
+                    ]
                 },
                 {
                     id: 2, title: "Compras", webhook: "", pivotFormId: 1, pivotField: "Nombre Obra",
-                    fields: [{ name: "Material", type: "text", required: true }, { name: "Cantidad", type: "number", required: true }],
-                    data: [{ _id: nextRecordId(), _parentId: 1, "Material": "Cemento", "Cantidad": "120" }]
+                    fields: [
+                        { name: "Fecha compra", type: "date", required: true },
+                        { name: "Producto comprado", type: "text", required: true },
+                        { name: "Precio c/IVA", type: "number", required: true },
+                        { name: "Comprado por", type: "text", required: false },
+                        { name: "Proveedor", type: "text", required: false },
+                        { name: "Obra", type: "text", required: true },
+                        { name: "Comentarios", type: "text", required: false }
+                    ],
+                    data: [
+                        { _id: 201, _parentId: 101, "Fecha compra": "2026-07-27", "Producto comprado": "Siliconas mantenimiento", "Precio c/IVA": "24103", "Comprado por": "Marcia Marcoleta", "Proveedor": "Sodimac", "Obra": "Edificio Los Aromos", "Comentarios": "Sellado general perimetral" },
+                        { _id: 202, _parentId: 101, "Fecha compra": "2026-07-31", "Producto comprado": "Varios techo", "Precio c/IVA": "35540", "Comprado por": "Marcia Marcoleta", "Proveedor": "Sodimac", "Obra": "Edificio Los Aromos", "Comentarios": "Varios reparación techo" },
+                        { _id: 203, _parentId: 102, "Fecha compra": "2026-08-05", "Producto comprado": "Hormigón g25 5m3 fundaciones", "Precio c/IVA": "841000", "Comprado por": "Marcia Marcoleta", "Proveedor": "Choapamix", "Obra": "Ironcar", "Comentarios": "Hormigón fundaciones primera parte" }
+                    ]
                 }
             ];
         } else if (type === 'inventario') {
             formsRegistry = [{
                 id: 1, title: "Inventario Bodega", webhook: "", pivotFormId: null, pivotField: "",
-                fields: [{ name: "Producto", type: "text", required: true }, { name: "Stock", type: "number", required: true }, { name: "Disponible", type: "checkbox", required: false }],
-                data: [{ _id: nextRecordId(), _parentId: null, "Producto": "Taladro", "Stock": "14", "Disponible": true }]
+                fields: [
+                    { name: "Producto", type: "text", required: true },
+                    { name: "Categoría", type: "text", required: true },
+                    { name: "Stock", type: "number", required: true },
+                    { name: "Ubicación", type: "text", required: false },
+                    { name: "Disponible", type: "checkbox", required: false }
+                ],
+                data: [
+                    { _id: nextRecordId(), _parentId: null, "Producto": "Taladro Percutor 18V", "Categoría": "Herramientas", "Stock": "14", "Ubicación": "Estante A-1", "Disponible": true },
+                    { _id: nextRecordId(), _parentId: null, "Producto": "Saco Cemento Polpaico 42.5kg", "Categoría": "Materiales", "Stock": "320", "Ubicación": "Bodega Central", "Disponible": true },
+                    { _id: nextRecordId(), _parentId: null, "Producto": "Disco de Corte Diamantado 9\"", "Categoría": "Accesorios", "Stock": "8", "Ubicación": "Estante B-3", "Disponible": true },
+                    { _id: nextRecordId(), _parentId: null, "Producto": "Casco de Seguridad Ala Ancha", "Categoría": "EPI", "Stock": "45", "Ubicación": "Casillero E", "Disponible": true }
+                ]
             }];
         } else if (type === 'encuesta') {
             formsRegistry = [{
                 id: 1, title: "Encuesta Satisfacción", webhook: "", pivotFormId: null, pivotField: "",
-                fields: [{ name: "Usuario", type: "text", required: true }, { name: "Puntuación (1-5)", type: "number", required: true }],
-                data: [{ _id: nextRecordId(), _parentId: null, "Usuario": "Carla Mendoza", "Puntuación (1-5)": "5" }]
+                fields: [
+                    { name: "Usuario", type: "text", required: true },
+                    { name: "Servicio", type: "text", required: true },
+                    { name: "Puntuación (1-5)", type: "number", required: true },
+                    { name: "Comentarios", type: "text", required: false },
+                    { name: "Fecha", type: "date", required: true }
+                ],
+                data: [
+                    { _id: nextRecordId(), _parentId: null, "Usuario": "Carla Mendoza", "Servicio": "Remodelación Cocina", "Puntuación (1-5)": "5", "Comentarios": "Excelente trabajo y puntualidad impecable.", "Fecha": "2026-08-20" },
+                    { _id: nextRecordId(), _parentId: null, "Usuario": "Hernán Cortés", "Servicio": "Postventa Techos", "Puntuación (1-5)": "4", "Comentarios": "Muy buena atención, resolvieron rápido el detalle.", "Fecha": "2026-08-22" },
+                    { _id: nextRecordId(), _parentId: null, "Usuario": "Macarena Cifuentes", "Servicio": "Muebles a medida", "Puntuación (1-5)": "5", "Comentarios": "El acabado superó mis expectativas.", "Fecha": "2026-08-25" }
+                ]
             }];
         } else if (type === 'usuarios') {
             formsRegistry = [{
                 id: 1, title: "Registro Usuarios", webhook: "", pivotFormId: null, pivotField: "",
-                fields: [{ name: "Nombre", type: "text", required: true }, { name: "Correo", type: "email", required: true }],
-                data: [{ _id: nextRecordId(), _parentId: null, "Nombre": "Juan Pérez", "Correo": "juan@example.com" }]
+                fields: [
+                    { name: "Nombre", type: "text", required: true },
+                    { name: "Apellido", type: "text", required: true },
+                    { name: "Correo", type: "email", required: true },
+                    { name: "Celular", type: "text", required: false },
+                    { name: "Empresa", type: "text", required: false }
+                ],
+                data: [
+                    { _id: nextRecordId(), _parentId: null, "Nombre": "Juan", "Apellido": "Pérez", "Correo": "juan@example.com", "Celular": "+5698065890", "Empresa": "Constructora SP" },
+                    { _id: nextRecordId(), _parentId: null, "Nombre": "Luis Alejandro", "Apellido": "Paz Rivera", "Correo": "lpaz@userena.cl", "Celular": "961224413", "Empresa": "Particular" },
+                    { _id: nextRecordId(), _parentId: null, "Nombre": "Javier", "Apellido": "Castillo", "Correo": "jcastillo@manto.cl", "Celular": "+56942807073", "Empresa": "Manto Ing." }
+                ]
             }];
         } else if (type === 'incidencias') {
             formsRegistry = [{
                 id: 1, title: "Reporte Incidencias", webhook: "", pivotFormId: null, pivotField: "",
-                fields: [{ name: "Descripción", type: "text", required: true }, { name: "Fecha", type: "date", required: false }],
-                data: [{ _id: nextRecordId(), _parentId: null, "Descripción": "Falla de red en piso 2", "Fecha": "2026-08-28" }]
+                fields: [
+                    { name: "Descripción", type: "text", required: true },
+                    { name: "Prioridad", type: "text", required: true },
+                    { name: "Estado", type: "text", required: true },
+                    { name: "Reportado por", type: "text", required: false },
+                    { name: "Fecha", type: "date", required: true }
+                ],
+                data: [
+                    { _id: nextRecordId(), _parentId: null, "Descripción": "Falla de red en piso 2", "Prioridad": "Alta", "Estado": "Pendiente", "Reportado por": "Marcia Marcoleta", "Fecha": "2026-08-28" },
+                    { _id: nextRecordId(), _parentId: null, "Descripción": "Gotera en sector bodega principal", "Prioridad": "Crítica", "Estado": "En proceso", "Reportado por": "Jorge Olaya", "Fecha": "2026-08-27" },
+                    { _id: nextRecordId(), _parentId: null, "Descripción": "Calibración nivel láser estación total", "Prioridad": "Media", "Estado": "Resuelto", "Reportado por": "Guido Castillo", "Fecha": "2026-08-24" }
+                ]
             }];
         }
-        recordIdCounter = 200;
+        recordIdCounter = 500;
         showToast("¡Plantilla cargada con éxito!");
         showLauncher();
     }
