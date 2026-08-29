@@ -792,6 +792,22 @@
     .modal-body h3 { color: var(--text); font-family: var(--font-display); font-size: 16px; margin: 16px 0 6px 0; }
     .modal-body p { margin: 0 0 12px 0; }
 
+    /* Modal de confirmación propio — reemplaza el confirm() nativo del
+       navegador, que muestra el nombre de la página/dominio en vez del
+       nombre de la app. Usa la misma estructura visual que los demás
+       modales, con "DataForge dice:" como encabezado fijo. */
+    .confirm-modal-content { max-width: 380px; padding: 22px; }
+    .confirm-modal-title {
+        font-family: var(--font-display);
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--gold);
+        margin: 0 0 10px 0;
+    }
+    .confirm-modal-text { font-size: 13.5px; line-height: 1.55; color: var(--text); margin: 0 0 18px 0; }
+    .confirm-modal-actions { display: flex; gap: 10px; }
+    .confirm-modal-actions .btn { flex: 1; }
+
     #toast-notification {
         position: fixed;
         bottom: 24px;
@@ -1125,6 +1141,18 @@
     </div>
 </div>
 
+<!-- Modal de Confirmación (reemplaza confirm() nativo) -->
+<div id="confirm-modal" class="modal-overlay hidden">
+    <div class="modal-content confirm-modal-content">
+        <p class="confirm-modal-title">DataForge dice:</p>
+        <p id="confirm-modal-text" class="confirm-modal-text">¿Estás seguro?</p>
+        <div class="confirm-modal-actions">
+            <button id="confirm-modal-cancel" class="btn btn-ghost-gold">Cancelar</button>
+            <button id="confirm-modal-accept" class="btn btn-gold">Aceptar</button>
+        </div>
+    </div>
+</div>
+
 <!-- Notificación Toast -->
 <div id="toast-notification" role="status" aria-live="polite">
     <svg class="ic" viewBox="0 0 24 24" style="width:16px;height:16px;"><path d="M20 6 9 17l-5-5"/></svg>
@@ -1224,6 +1252,33 @@
         document.getElementById('toast-msg').textContent = msg;
         toast.classList.add('show');
         setTimeout(() => toast.classList.remove('show'), 2500);
+    }
+
+    // Reemplazo de confirm() nativo: devuelve una Promise<boolean> que se
+    // resuelve true/false según el botón que el usuario toque. Se usa con
+    // "await showConfirmDialog('texto')" en vez de "confirm('texto')".
+    function showConfirmDialog(message) {
+        return new Promise(resolve => {
+            const modal = document.getElementById('confirm-modal');
+            const textEl = document.getElementById('confirm-modal-text');
+            const acceptBtn = document.getElementById('confirm-modal-accept');
+            const cancelBtn = document.getElementById('confirm-modal-cancel');
+
+            textEl.textContent = message;
+            modal.classList.remove('hidden');
+
+            function cleanup(result) {
+                modal.classList.add('hidden');
+                acceptBtn.removeEventListener('click', onAccept);
+                cancelBtn.removeEventListener('click', onCancel);
+                resolve(result);
+            }
+            function onAccept() { cleanup(true); }
+            function onCancel() { cleanup(false); }
+
+            acceptBtn.addEventListener('click', onAccept);
+            cancelBtn.addEventListener('click', onCancel);
+        });
     }
 
     function openReadmeModal() { document.getElementById('readme-modal').classList.remove('hidden'); }
@@ -1350,8 +1405,9 @@
         renderLauncherList();
     }
 
-    function resetAppCompletely() {
-        if (!confirm('¿Estás seguro de reiniciar la aplicación? Se borrarán todos los formularios y registros actuales para volver al principio.')) return;
+    async function resetAppCompletely() {
+        const ok = await showConfirmDialog('¿Estás seguro de reiniciar la aplicación? Se borrarán todos los formularios y registros actuales para volver al principio.');
+        if (!ok) return;
         formsRegistry = [];
         activeIndexByForm = {};
         activeFormId = null;
@@ -1656,7 +1712,7 @@
         renderBuilderFields();
     }
 
-    function handlePivotChange() {
+    async function handlePivotChange() {
         const formObj = getForm(editingFormId);
         if (!formObj) return;
         const pivotSelect = document.getElementById('form-pivot-source');
@@ -1665,7 +1721,7 @@
         const hasData = formObj.data.some(r => recordHasData(formObj, r));
 
         if (hasData) {
-            const proceed = confirm(
+            const proceed = await showConfirmDialog(
                 `Cambiar esta relación borrará los ${countFilledRecords(formObj, formObj.data)} registro(s) ya cargados en "${formObj.title || 'este formulario'}", porque no tienen un registro padre real asignado. Después de guardar, podrás volver a cargarlos entrando desde el registro padre correspondiente. ¿Continuar?`
             );
             if (!proceed) {
@@ -1721,10 +1777,11 @@
         showLauncher();
     }
 
-    function deleteEntireForm() {
+    async function deleteEntireForm() {
         if (!editingFormId) return;
         const formObj = getForm(editingFormId);
-        if (!confirm(`¿Eliminar formulario "${formObj.title}"?`)) return;
+        const ok = await showConfirmDialog(`¿Eliminar formulario "${formObj.title}"?`);
+        if (!ok) return;
         formsRegistry = formsRegistry.filter(f => f.id !== editingFormId);
         editingFormId = null;
         showToast("Formulario eliminado");
@@ -1948,12 +2005,13 @@
         setTimeout(() => { btn.classList.remove('btn-saved'); btn.innerHTML = orig; }, 1100);
     }
 
-    function clearCurrentRecord() {
+    async function clearCurrentRecord() {
         if (!activeFormId || renderedRecordId === null) return;
         const formObj = getForm(activeFormId);
         const currentRecord = findRecordById(activeFormId, renderedRecordId);
         if (!currentRecord) return;
-        if (!confirm('¿Limpiar registro?')) return;
+        const ok = await showConfirmDialog('¿Limpiar registro?');
+        if (!ok) return;
         formObj.fields.forEach(f => { currentRecord[f.name] = f.type === 'checkbox' ? false : ''; });
         renderRuntime();
         showToast("Registro limpiado");
@@ -1966,11 +2024,13 @@
         });
     }
 
-    function deleteCurrentRecord() {
+    async function deleteCurrentRecord() {
         if (!activeFormId || renderedRecordId === null) return;
         const formObj = getForm(activeFormId);
         const currentRecord = findRecordById(activeFormId, renderedRecordId);
-        if (!currentRecord || !confirm('¿Eliminar este registro?')) return;
+        if (!currentRecord) return;
+        const ok = await showConfirmDialog('¿Eliminar este registro?');
+        if (!ok) return;
         deleteDescendantRecords(activeFormId, currentRecord._id);
         formObj.data = formObj.data.filter(r => r._id !== currentRecord._id);
         renderedRecordId = null;
