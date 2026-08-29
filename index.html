@@ -835,7 +835,7 @@
 
         <div id="pivot-section" style="margin-bottom: 14px; display: none;">
             <label class="field-label" for="form-pivot-source">Depende de (Relación Padre)</label>
-            <select id="form-pivot-source">
+            <select id="form-pivot-source" onchange="handlePivotChange()">
                 <option value="">No depende de otro — es principal</option>
             </select>
         </div>
@@ -1364,6 +1364,53 @@
         renderBuilderFields();
     }
 
+    // ============================================================
+    // CAMBIO DE RELACIÓN PADRE
+    // Se dispara al tocar el selector "Depende de". Un registro hijo
+    // solo puede pertenecer a UN padre exacto (por _id), nunca por
+    // coincidencia de texto entre campos — eso es ambiguo y es lo que
+    // producía registros mezclados entre distintos padres. Por eso,
+    // cambiar la relación (o quitarla) reinicia los datos de este
+    // formulario: los registros nuevos se cargan correctamente desde
+    // el registro padre real (botón "Ver [formulario] →"), con su
+    // _parentId asignado en el momento, sin ambigüedad posible.
+    // ============================================================
+
+    function handlePivotChange() {
+        const formObj = getForm(editingFormId);
+        if (!formObj) return;
+        const pivotSelect = document.getElementById('form-pivot-source');
+        const newValue = pivotSelect.value;
+
+        const hasData = formObj.data.some(r => recordHasData(formObj, r));
+
+        if (hasData) {
+            const proceed = confirm(
+                `Cambiar esta relación borrará los ${countFilledRecords(formObj, formObj.data)} registro(s) ya cargados en "${formObj.title || 'este formulario'}", porque no tienen un registro padre real asignado. Después de guardar, podrás volver a cargarlos entrando desde el registro padre correspondiente. ¿Continuar?`
+            );
+            if (!proceed) {
+                // Revertir el select a la relación actual, sin tocar nada más
+                pivotSelect.value = formObj.pivotFormId ? `${formObj.pivotFormId}::${formObj.pivotField}` : '';
+                return;
+            }
+        }
+
+        if (newValue) {
+            const parts = newValue.split('::');
+            formObj.pivotFormId = parseInt(parts[0]);
+            formObj.pivotField = parts[1];
+        } else {
+            formObj.pivotFormId = null;
+            formObj.pivotField = '';
+        }
+
+        formObj.data = [];
+        activeIndexByForm[formObj.id] = 0;
+        resetDescendantIndices(formObj.id);
+
+        if (hasData) showToast('Relación actualizada — los registros se reiniciaron');
+    }
+
     function saveBuilderState() {
         const formObj = getForm(editingFormId);
         if (!formObj) return;
@@ -1371,39 +1418,21 @@
         formObj.title = document.getElementById('form-title-input').value || 'Sin nombre';
         formObj.webhook = document.getElementById('form-webhook-input').value.trim();
 
+        // La relación padre/hijo (pivotFormId, pivotField) y el eventual
+        // reinicio de datos ya se resolvieron en handlePivotChange(), que
+        // se dispara al cambiar el select. Aquí solo reflejamos lo que
+        // haya en el select para mantener todo sincronizado — nunca se
+        // reasigna _parentId por coincidencia de texto: eso es lo que
+        // causaba que registros hijos quedaran mezclados entre distintos
+        // padres.
         const pivotSelect = document.getElementById('form-pivot-source');
         if (pivotSelect && pivotSelect.value) {
             const parts = pivotSelect.value.split('::');
-            const newPivotId = parseInt(parts[0]);
-            formObj.pivotFormId = newPivotId;
+            formObj.pivotFormId = parseInt(parts[0]);
             formObj.pivotField = parts[1];
-
-            // Asignación inteligente: si los registros no tienen _parentId correcto, revisamos si algún campo del hijo contiene el nombre del padre
-            const parentForm = getForm(newPivotId);
-            if (parentForm && parentForm.data.length > 0) {
-                formObj.data.forEach(r => {
-                    let matchedParentId = null;
-                    // Buscar coincidencia en los campos del registro hijo con los valores del padre
-                    for (let key in r) {
-                        if (key.startsWith('_')) continue;
-                        const valStr = String(r[key] || '').toLowerCase();
-                        const matchingParent = parentForm.data.find(p => {
-                            const pVal = String(p[formObj.pivotField] || '').toLowerCase();
-                            return pVal && (valStr.includes(pVal) || pVal.includes(valStr));
-                        });
-                        if (matchingParent) {
-                            matchedParentId = matchingParent._id;
-                            break;
-                        }
-                    }
-                    // Si no hubo coincidencia de texto, asignamos al primer padre por defecto
-                    r._parentId = matchedParentId !== null ? matchedParentId : parentForm.data[0]._id;
-                });
-            }
         } else {
             formObj.pivotFormId = null;
             formObj.pivotField = "";
-            formObj.data.forEach(r => { r._parentId = null; });
         }
 
         document.querySelectorAll('.field-builder-row').forEach((row, index) => {
