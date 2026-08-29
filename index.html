@@ -174,12 +174,14 @@
         align-items: flex-start;
         justify-content: space-between;
         gap: 10px;
+        flex-wrap: nowrap;
     }
 
     .hero-toggle-btn {
         flex-shrink: 0;
-        padding: 5px;
         margin-top: -2px;
+        min-width: 32px;
+        min-height: 32px;
     }
     .hero-toggle-btn svg.ic { width: 15px; height: 15px; }
 
@@ -189,6 +191,10 @@
         font-weight: 600;
         color: var(--text);
         margin: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        min-width: 0;
     }
 
     .hero-desc {
