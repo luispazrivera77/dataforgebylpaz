@@ -745,18 +745,36 @@
         padding: 18px 22px;
         width: 320px;
         max-width: calc(100vw - 32px);
+        max-height: calc(100vh - 24px);
+        overflow-y: auto;
         box-shadow: 0 10px 30px rgba(0,0,0,0.8);
-        z-index: 20000;
+        z-index: 20001;
         display: none;
         flex-direction: column;
         gap: 12px;
         animation: fadeIn 0.3s ease;
+        transition: top 0.25s ease, left 0.25s ease;
     }
     .tour-bubble.show { display: flex; }
     .tour-title { font-family: var(--font-display); font-size: 15px; font-weight: 600; color: var(--gold); margin: 0; }
     .tour-text { font-size: 13px; color: var(--text-dim); line-height: 1.5; margin: 0; }
     .tour-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 4px; }
     .tour-step-indicator { font-family: var(--font-mono); font-size: 10px; color: var(--text-faint); }
+
+    /* Resalta el botón real al que se refiere el paso del tour: lo eleva
+       por encima del overlay oscuro (que si no, lo taparía/oscurecería)
+       y le agrega un brillo dorado pulsante, para que quede claro a qué
+       elemento apunta la burbuja aunque esta no pueda tocarlo. */
+    .tour-target-highlight {
+        position: relative;
+        z-index: 20000;
+        border-radius: 10px;
+        animation: tourPulse 1.4s ease-in-out infinite;
+    }
+    @keyframes tourPulse {
+        0%, 100% { box-shadow: 0 0 0 3px rgba(217,166,83,0.4), 0 0 16px rgba(217,166,83,0.5); }
+        50% { box-shadow: 0 0 0 6px rgba(217,166,83,0.55), 0 0 26px rgba(217,166,83,0.75); }
+    }
 
     @keyframes fadeIn {
         from { opacity: 0; transform: translateY(6px); }
@@ -1247,6 +1265,8 @@
     function endTour() {
         document.getElementById('tour-overlay').classList.remove('show');
         document.getElementById('tour-bubble').classList.remove('show');
+        const highlighted = document.querySelector('.tour-target-highlight');
+        if (highlighted) highlighted.classList.remove('tour-target-highlight');
     }
 
     function nextTourStep() {
@@ -1259,31 +1279,61 @@
         renderTourStep();
     }
 
+    function centerTourBubble() {
+        const bubble = document.getElementById('tour-bubble');
+        bubble.style.left = '50%';
+        bubble.style.top = '40%';
+        bubble.style.transform = 'translate(-50%, -50%)';
+    }
+
+    // Coloca la burbuja pegada al botón real (arriba o abajo, según
+    // dónde quepa), sin salirse nunca de la pantalla — igual que las
+    // burbujas de ayuda (mini-tips), pero midiendo el tamaño real de
+    // la burbuja después de que el scroll automático haya terminado.
+    function positionTourBubbleNear(el) {
+        const bubble = document.getElementById('tour-bubble');
+        const margin = 12;
+        const rect = el.getBoundingClientRect();
+        const bubbleRect = bubble.getBoundingClientRect();
+
+        let left = rect.left + rect.width / 2 - bubbleRect.width / 2;
+        left = Math.max(margin, Math.min(left, window.innerWidth - bubbleRect.width - margin));
+
+        let top = rect.bottom + margin;
+        if (top + bubbleRect.height > window.innerHeight - margin) {
+            top = rect.top - bubbleRect.height - margin;
+        }
+        if (top < margin) top = margin;
+        if (top + bubbleRect.height > window.innerHeight - margin) {
+            top = Math.max(margin, window.innerHeight - bubbleRect.height - margin);
+        }
+
+        bubble.style.transform = 'none';
+        bubble.style.left = `${left}px`;
+        bubble.style.top = `${top}px`;
+    }
+
     function renderTourStep() {
+        const previousHighlight = document.querySelector('.tour-target-highlight');
+        if (previousHighlight) previousHighlight.classList.remove('tour-target-highlight');
+
         const step = tourSteps[currentTourStep];
         document.getElementById('tour-title').textContent = step.title;
         document.getElementById('tour-text').textContent = step.text;
         document.getElementById('tour-step-indicator').textContent = `Paso ${currentTourStep + 1} de ${tourSteps.length}`;
 
-        const bubble = document.getElementById('tour-bubble');
-        const isMobile = window.innerWidth <= 480;
-        if (step.target && !isMobile) {
-            const el = document.getElementById(step.target);
-            if (el) {
-                const rect = el.getBoundingClientRect();
-                bubble.style.transform = 'none';
-                bubble.style.top = `${rect.bottom + 12}px`;
-                bubble.style.left = `${Math.max(16, rect.left - 20)}px`;
-            } else {
-                bubble.style.top = '40%';
-                bubble.style.left = '50%';
-                bubble.style.transform = 'translate(-50%, -50%)';
-            }
-        } else {
-            bubble.style.top = '40%';
-            bubble.style.left = '50%';
-            bubble.style.transform = 'translate(-50%, -50%)';
-        }
+        if (!step.target) { centerTourBubble(); return; }
+
+        const el = document.getElementById(step.target);
+        if (!el) { centerTourBubble(); return; }
+
+        el.classList.add('tour-target-highlight');
+        el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+
+        // Se espera a que termine el scroll suave antes de medir la
+        // posición real del botón; si no, la burbuja quedaría calculada
+        // con la posición vieja (antes de moverse la pantalla).
+        setTimeout(() => positionTourBubbleNear(el), 380);
     }
 
     function showToast(msg) {
