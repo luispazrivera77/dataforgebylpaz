@@ -444,11 +444,20 @@
         transition: 0.2s;
     }
 
-    .empty-state .ring:hover {
-        background: var(--gold);
-        color: #0a0d14;
-        transform: scale(1.05);
-        box-shadow: 0 0 20px rgba(217, 166, 83, 0.4);
+    /* Estados de :hover reales (solo dispositivos con mouse). Se
+       aíslan bajo (hover: hover) y (pointer: fine) para que en
+       táctil/celular NUNCA se activen estos estilos ni se queden
+       "pegados" tras un tap — ver nota junto a .ring::before y al
+       svg.ic más abajo, donde antes se apagaba la animación del "+"
+       al tocar y quedaba congelada hasta tocar otra parte de la
+       pantalla. */
+    @media (hover: hover) and (pointer: fine) {
+        .empty-state .ring:hover {
+            background: var(--gold);
+            color: #0a0d14;
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(217, 166, 83, 0.4);
+        }
     }
 
     /* Línea brillante que recorre el borde del círculo, para invitar
@@ -476,15 +485,27 @@
         pointer-events: none;
     }
 
-    .empty-state .ring:hover::before { animation-play-state: paused; opacity: 0; }
-
     /* Pulso de luz en el signo "+", sincronizado a un ritmo más lento
-       para que no compita visualmente con el giro del anillo. */
+       para que no compita visualmente con el giro del anillo. Corre
+       siempre por defecto (incluido celular) — solo se pausa al
+       pasar el mouse de verdad, nunca por un tap táctil. */
     .empty-state .ring svg.ic {
         animation: plusGlowPulse 2.4s ease-in-out infinite;
     }
 
-    .empty-state .ring:hover svg.ic { animation: none; }
+    /* IMPORTANTE (fix móvil): estas dos reglas antes vivían fuera de
+       cualquier media query, con selector ".ring:hover". En navegadores
+       móviles, tocar un elemento puede activar su estado :hover y
+       dejarlo "pegado" — el giro del anillo y el pulso del "+" se
+       detenían al primer toque y no volvían a animarse hasta tocar
+       otra parte de la pantalla (dando la falsa impresión de que la
+       animación "no se ve" en celular). Al restringirlas a
+       (hover: hover) and (pointer: fine), solo se aplican en equipos
+       con mouse real, y en celular la animación queda siempre activa. */
+    @media (hover: hover) and (pointer: fine) {
+        .empty-state .ring:hover::before { animation-play-state: paused; opacity: 0; }
+        .empty-state .ring:hover svg.ic { animation: none; }
+    }
 
     @keyframes ringShineSpin {
         to { transform: rotate(360deg); }
