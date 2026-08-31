@@ -40,11 +40,6 @@
         --font-body: 'Inter', system-ui, sans-serif;
     }
 
-    /* Modo claro — se activa poniendo data-theme="light" en <html>.
-        Redefine solo la paleta neutra y el dorado (más oscuro, para
-        mantener buen contraste sobre fondo blanco); el resto de colores
-        de acento (éxito, peligro, profundidad) se mantienen iguales
-        porque ya funcionan bien en ambos fondos. */
     html[data-theme="light"] {
         --bg-app: #f2ede2;
         --bg-screen: #ffffff;
@@ -93,7 +88,7 @@
         flex-direction: column;
         position: relative;
         box-shadow: var(--container-shadow);
-        overflow-x: hidden;
+        overflow: hidden; /* CORREGIDO: Evita que elementos flotantes se queden asomados abajo */
     }
 
     @media (min-width: 700px) {
@@ -102,7 +97,6 @@
             max-height: 90vh;
             border-radius: 16px;
             border: 1px solid var(--border-gold);
-            overflow: hidden;
         }
     }
 
@@ -444,13 +438,6 @@
         transition: 0.2s;
     }
 
-    /* Estados de :hover reales (solo dispositivos con mouse). Se
-       aíslan bajo (hover: hover) y (pointer: fine) para que en
-       táctil/celular NUNCA se activen estos estilos ni se queden
-       "pegados" tras un tap — ver nota junto a .ring::before y al
-       svg.ic más abajo, donde antes se apagaba la animación del "+"
-       al tocar y quedaba congelada hasta tocar otra parte de la
-       pantalla. */
     @media (hover: hover) and (pointer: fine) {
         .empty-state .ring:hover {
             background: var(--gold);
@@ -460,11 +447,6 @@
         }
     }
 
-    /* Línea brillante que recorre el borde del círculo, para invitar
-       a tocar el botón "+". Es un anillo (conic-gradient) recortado
-       a solo un trazo fino mediante mask, que gira sin parar. Se
-       detiene al pasar el mouse/tocar, para no competir con el
-       feedback de hover. */
     .empty-state .ring::before {
         content: "";
         position: absolute;
@@ -485,23 +467,10 @@
         pointer-events: none;
     }
 
-    /* Pulso de luz en el signo "+", sincronizado a un ritmo más lento
-       para que no compita visualmente con el giro del anillo. Corre
-       siempre por defecto (incluido celular) — solo se pausa al
-       pasar el mouse de verdad, nunca por un tap táctil. */
     .empty-state .ring svg.ic {
         animation: plusGlowPulse 2.4s ease-in-out infinite;
     }
 
-    /* IMPORTANTE (fix móvil): estas dos reglas antes vivían fuera de
-       cualquier media query, con selector ".ring:hover". En navegadores
-       móviles, tocar un elemento puede activar su estado :hover y
-       dejarlo "pegado" — el giro del anillo y el pulso del "+" se
-       detenían al primer toque y no volvían a animarse hasta tocar
-       otra parte de la pantalla (dando la falsa impresión de que la
-       animación "no se ve" en celular). Al restringirlas a
-       (hover: hover) and (pointer: fine), solo se aplican en equipos
-       con mouse real, y en celular la animación queda siempre activa. */
     @media (hover: hover) and (pointer: fine) {
         .empty-state .ring:hover::before { animation-play-state: paused; opacity: 0; }
         .empty-state .ring:hover svg.ic { animation: none; }
@@ -848,7 +817,6 @@
         margin: 16px 0;
     }
 
-    /* Estilos del Tour Guiado / Burbujas Interactivas */
     #tour-overlay {
         position: fixed;
         inset: 0;
@@ -883,10 +851,6 @@
     .tour-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 4px; }
     .tour-step-indicator { font-family: var(--font-mono); font-size: 10px; color: var(--text-faint); }
 
-    /* Resalta el botón real al que se refiere el paso del tour: lo eleva
-       por encima del overlay oscuro (que si no, lo taparía/oscurecería)
-       y le agrega un brillo dorado pulsante, para que quede claro a qué
-       elemento apunta la burbuja aunque esta no pueda tocarlo. */
     .tour-target-highlight {
         position: relative;
         z-index: 20000;
@@ -903,9 +867,6 @@
         to { opacity: 1; transform: translateY(0); }
     }
 
-    /* Burbujas de ayuda contextual (mini-tips) — misma estética del Tour,
-       pero pequeñas, sin botones, y que aparecen/desaparecen solas:
-       en escritorio al pasar el mouse, en móvil al mantener presionado. */
     .mini-tip {
         position: fixed;
         background: var(--surface-2);
@@ -927,7 +888,6 @@
     }
     .mini-tip.show { opacity: 1; transform: translateY(0); }
 
-    /* Modal */
     .modal-overlay {
         position: fixed;
         inset: 0;
@@ -958,10 +918,6 @@
     .modal-body h3 { color: var(--text); font-family: var(--font-display); font-size: 16px; margin: 16px 0 6px 0; }
     .modal-body p { margin: 0 0 12px 0; }
 
-    /* Modal de confirmación propio — reemplaza el confirm() nativo del
-       navegador, que muestra el nombre de la página/dominio en vez del
-       nombre de la app. Usa la misma estructura visual que los demás
-       modales, con "DataForge dice:" como encabezado fijo. */
     .confirm-modal-content { max-width: 380px; padding: 22px; }
     .confirm-modal-title {
         font-family: var(--font-display);
@@ -974,11 +930,12 @@
     .confirm-modal-actions { display: flex; gap: 10px; }
     .confirm-modal-actions .btn { flex: 1; }
 
+    /* CORREGIDO: Se asegura que el toast se mueva completamente fuera de la pantalla (translateY 200%) para que no quede asomado */
     #toast-notification {
         position: fixed;
         bottom: 24px;
         left: 50%;
-        transform: translateX(-50%) translateY(150%);
+        transform: translateX(-50%) translateY(200%);
         background: var(--success);
         color: #03140f;
         padding: 10px 20px;
@@ -993,21 +950,10 @@
         gap: 8px;
         max-width: calc(100vw - 32px);
         text-align: center;
+        pointer-events: none; /* CORREGIDO: Evita toques fantasmas */
     }
-    #toast-notification.show { transform: translateX(-50%) translateY(0); }
+    #toast-notification.show { transform: translateX(-50%) translateY(0); pointer-events: auto; }
 
-    /* ============================================================
-       AJUSTES DE DISTRIBUCIÓN PARA CELULAR
-       Antes, la fila de botones del header (Tour, Documentación,
-       Reiniciar, Cargar Excel, Exportar, Nuevo) era un único renglón
-       sin permitir salto de línea — en pantallas angostas esos
-       botones se salían del contenedor y quedaban cortados (oculto
-       tras el borde), como se ve en el pantallazo de celular.
-       Ahora, en pantallas angostas, el título y los botones se
-       apilan, y los botones se acomodan en varias filas (wrap) en
-       vez de desbordarse. También se reduce el padding general y
-       las fuentes para aprovechar mejor el espacio.
-       ============================================================ */
     @media (max-width: 480px) {
         .screen { padding: 18px 16px 14px 16px; }
         .brand { font-size: 19px; }
@@ -1044,8 +990,6 @@
 </head>
 <body>
 <script>
-    // Aplica el tema guardado ANTES de pintar el resto de la página,
-    // para evitar el parpadeo de "oscuro y luego cambia a claro".
     (function () {
         try {
             var saved = localStorage.getItem('dataforge-theme');
@@ -1056,7 +1000,6 @@
 
 <div class="app-container">
 
-    <!-- Lanzador -->
     <section id="screen-launcher" class="screen">
         <div class="brand-row">
             <div class="brand">DataForge<small>CONSTRUCTOR DE DATOS</small></div>
@@ -1095,7 +1038,6 @@
             </div>
         </div>
 
-        <!-- Hero / Propuesta de Valor -->
         <div class="hero-banner">
             <div class="hero-banner-header">
                 <h1 class="hero-title">Trabaja, diseña y sincroniza...</h1>
@@ -1151,7 +1093,6 @@
         <div id="launcher-list" class="app-launcher-grid"></div>
     </section>
 
-    <!-- Diseñador -->
     <section id="screen-builder" class="screen hidden">
         <div class="top-bar">
             <span id="builder-step-label" class="pill" style="background:var(--gold-soft); color:var(--gold); border: 1px solid var(--border-gold);">Nuevo</span>
@@ -1212,7 +1153,6 @@
         </div>
     </section>
 
-    <!-- Runtime -->
     <section id="screen-runtime" class="screen hidden">
         <div id="runtime-breadcrumb" class="breadcrumb"></div>
 
@@ -1291,7 +1231,6 @@
 
 </div>
 
-<!-- Elementos del Tour Guiado -->
 <div id="tour-overlay"></div>
 <div id="tour-bubble" class="tour-bubble">
     <p id="tour-title" class="tour-title">Título del paso</p>
@@ -1305,7 +1244,6 @@
     </div>
 </div>
 
-<!-- Modal README / Guía -->
 <div id="readme-modal" class="modal-overlay hidden">
     <div class="modal-content">
         <div class="brand-row" style="margin-bottom: 0; padding-bottom: 12px;">
@@ -1319,7 +1257,6 @@
     </div>
 </div>
 
-<!-- Modal Previsualización -->
 <div id="preview-modal" class="modal-overlay hidden">
     <div class="modal-content">
         <div class="brand-row" style="margin-bottom: 0; padding-bottom: 12px;">
@@ -1331,7 +1268,6 @@
     </div>
 </div>
 
-<!-- Modal de Confirmación (reemplaza confirm() nativo) -->
 <div id="confirm-modal" class="modal-overlay hidden">
     <div class="modal-content confirm-modal-content">
         <p class="confirm-modal-title">DataForge dice:</p>
@@ -1343,7 +1279,6 @@
     </div>
 </div>
 
-<!-- Notificación Toast -->
 <div id="toast-notification" role="status" aria-live="polite">
     <svg class="ic" viewBox="0 0 24 24" style="width:16px;height:16px;"><path d="M20 6 9 17l-5-5"/></svg>
     <span id="toast-msg">Operación realizada con éxito</span>
@@ -1362,7 +1297,6 @@
     let viewMode = 'table';
     let renderedRecordId = null;
 
-    // Sistema de Tour Guiado por Burbujas
     let currentTourStep = 0;
     const tourSteps = [
         {
@@ -1419,10 +1353,6 @@
         bubble.style.transform = 'translate(-50%, -50%)';
     }
 
-    // Coloca la burbuja pegada al botón real (arriba o abajo, según
-    // dónde quepa), sin salirse nunca de la pantalla — igual que las
-    // burbujas de ayuda (mini-tips), pero midiendo el tamaño real de
-    // la burbuja después de que el scroll automático haya terminado.
     function positionTourBubbleNear(el) {
         const bubble = document.getElementById('tour-bubble');
         const margin = 12;
@@ -1463,9 +1393,6 @@
         el.classList.add('tour-target-highlight');
         el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
 
-        // Se espera a que termine el scroll suave antes de medir la
-        // posición real del botón; si no, la burbuja quedaría calculada
-        // con la posición vieja (antes de moverse la pantalla).
         setTimeout(() => positionTourBubbleNear(el), 380);
     }
 
@@ -1476,9 +1403,6 @@
         setTimeout(() => toast.classList.remove('show'), 2500);
     }
 
-    // Reemplazo de confirm() nativo: devuelve una Promise<boolean> que se
-    // resuelve true/false según el botón que el usuario toque. Se usa con
-    // "await showConfirmDialog('texto')" en vez de "confirm('texto')".
     function showConfirmDialog(message) {
         return new Promise(resolve => {
             const modal = document.getElementById('confirm-modal');
@@ -2438,20 +2362,6 @@
         reader.readAsArrayBuffer(file);
     }
 
-    // ============================================================
-    // BURBUJAS DE AYUDA CONTEXTUAL (mini-tips)
-    // Reemplazan el atributo "title" nativo (que en móvil no se ve
-    // nunca, porque depende del hover del mouse) por una burbuja
-    // propia, con la misma estética que las burbujas del Tour, que
-    // aparece y desaparece sola:
-    //  - Escritorio: al pasar el mouse por el botón.
-    //  - Móvil: al mantener presionado ~400ms sobre el botón (sin
-    //    disparar la acción del botón al soltar, para que se pueda
-    //    leer la burbuja antes de decidir tocar o no).
-    // Se aplica automáticamente a cualquier elemento con atributo
-    // data-tip="texto".
-    // ============================================================
-
     let miniTipPressTimer = null;
     let miniTipHideTimer = null;
 
@@ -2496,18 +2406,13 @@
     }
 
     function bindMiniTip(el) {
-        // Se lee el atributo en cada evento (no una sola vez al inicio),
-        // porque algunos botones —como el de cambio de tema— actualizan
-        // su texto de ayuda dinámicamente.
         function currentText() { return el.getAttribute('data-tip'); }
 
-        // Escritorio: hover
         el.addEventListener('mouseenter', () => { const t = currentText(); if (t) showMiniTip(el, t); });
         el.addEventListener('mouseleave', hideMiniTip);
         el.addEventListener('focus', () => { const t = currentText(); if (t) showMiniTip(el, t); });
         el.addEventListener('blur', hideMiniTip);
 
-        // Móvil: mantener presionado para ver la burbuja sin activar el botón
         el.addEventListener('touchstart', () => {
             el.dataset.tipShown = '';
             miniTipPressTimer = setTimeout(() => {
@@ -2521,9 +2426,6 @@
         el.addEventListener('touchend', (e) => {
             clearTimeout(miniTipPressTimer);
             if (el.dataset.tipShown === '1') {
-                // Ya se mostró la burbuja durante la presión larga:
-                // se evita que además dispare la acción del botón,
-                // para que el usuario pueda leerla con calma.
                 e.preventDefault();
                 el.dataset.tipShown = '';
                 setTimeout(hideMiniTip, 1000);
@@ -2534,15 +2436,6 @@
     function initMiniTips() {
         document.querySelectorAll('[data-tip]').forEach(bindMiniTip);
     }
-
-    // ============================================================
-    // MODO CLARO / MODO OSCURO
-    // El tema se guarda en localStorage para recordarlo entre visitas
-    // (esta app se aloja en GitHub Pages, no es un artifact embebido,
-    // así que sí puede usar almacenamiento del navegador). El script
-    // al inicio del <body> ya aplicó el tema guardado antes de pintar
-    // la pantalla; aquí solo se sincroniza el ícono del botón.
-    // ============================================================
 
     const ICON_SUN = '<svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>';
     const ICON_MOON = '<svg class="ic" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z"/></svg>';
@@ -2567,16 +2460,6 @@
         try { localStorage.setItem('dataforge-theme', next); } catch (e) {}
         applyThemeIcon();
     }
-
-    // ============================================================
-    // CONTRAER / EXPANDIR EL TEXTO DE PORTADA (hero)
-    // En celular, el párrafo de bienvenida ocupa mucho espacio y
-    // empuja las plantillas prediseñadas fuera de la vista sin hacer
-    // scroll. Este botón lo contrae a solo el título, y recuerda la
-    // preferencia entre visitas. Por defecto, en pantallas angostas
-    // arranca contraído (para priorizar ver las plantillas); en
-    // pantallas más anchas arranca expandido.
-    // ============================================================
 
     const ICON_CHEVRON_UP = '<svg class="ic" viewBox="0 0 24 24"><path d="M18 15l-6-6-6 6"/></svg>';
     const ICON_CHEVRON_DOWN = '<svg class="ic" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>';
@@ -2609,13 +2492,6 @@
         desc.classList.toggle('collapsed', shouldCollapse);
         applyHeroToggleIcon();
     }
-
-    // ============================================================
-    // CONTRAER / EXPANDIR EL TEXTO DEL ESTADO VACÍO
-    // ("Comienza con DataForge") — mismo mecanismo que el hero:
-    // funciona igual en PC y en celular, y recuerda la preferencia
-    // entre visitas. Por defecto arranca expandido en ambos casos.
-    // ============================================================
 
     function applyEmptyToggleIcon() {
         const btn = document.getElementById('empty-toggle-btn');
