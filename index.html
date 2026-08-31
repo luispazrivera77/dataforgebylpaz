@@ -425,14 +425,15 @@
     svg.ic { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
 
     .empty-state {
-        flex: 1;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
         text-align: center;
         gap: 16px;
-        padding: 20px;
+        padding: 20px 0;
+        margin-top: 10px;
+        border-top: 1px dashed var(--border);
     }
 
     .empty-state .ring {
@@ -1114,17 +1115,19 @@
 
         <div id="global-search-results" class="global-search-results" style="display:none;"></div>
 
-        <div id="launcher-empty" class="empty-state" style="display:none;">
+        <div id="launcher-list" class="app-launcher-grid"></div>
+
+        <div id="launcher-empty" class="empty-state">
             <div class="ring" onclick="document.getElementById('import-file-input').click()" data-tip="Haz clic para importar tu Excel o archivo JSON">
                 <svg class="ic" viewBox="0 0 24 24" style="width:24px;height:24px;"><path d="M12 5v14M5 12h14"/></svg>
             </div>
             <div class="empty-desc-header">
-                <h3>Comienza con DataForge</h3>
+                <h3>Plantillas y opciones rápidas</h3>
                 <button id="empty-toggle-btn" onclick="toggleEmptyDesc()" class="btn btn-ghost-gold btn-icon-only empty-toggle-btn" aria-label="Contraer descripción" data-tip="Contraer descripción">
                     <svg class="ic" viewBox="0 0 24 24"><path d="M18 15l-6-6-6 6"/></svg>
                 </button>
             </div>
-            <p class="empty-desc" id="empty-desc">Importa tu excel o base de datos y trabaja fácil... o crea tu primer formulario desde cero... o elige una de nuestras plantillas prediseñadas.</p>
+            <p class="empty-desc" id="empty-desc">Carga plantillas prediseñadas para comenzar a trabajar de inmediato con estructuras probadas.</p>
             <div class="templates-grid">
                 <div class="template-card" onclick="loadTemplate('supermercado')">
                     <span>🛒 Lista Supermercado</span>
@@ -1152,8 +1155,6 @@
                 </div>
             </div>
         </div>
-
-        <div id="launcher-list" class="app-launcher-grid"></div>
     </section>
 
     <section id="screen-builder" class="screen hidden">
@@ -2029,7 +2030,6 @@
         saveCurrentRuntimeData();
         navStack = [];
         
-        // Calcular la posición exacta del registro dentro de los visibles o de la estructura general
         const visibleList = getVisibleRecords(targetFormId);
         const visibleIdx = visibleList.findIndex(r => r._id === targetRecordId);
         
@@ -2039,7 +2039,6 @@
                 activeIndexByForm[targetFormId] = realIndex;
             }
         } else {
-            // Si está filtrado o pertenece a otro contexto, aseguramos posicionar el índice real
             const realIndex = targetForm.data.findIndex(r => r._id === targetRecordId);
             if (realIndex !== -1) {
                 activeIndexByForm[targetFormId] = realIndex;
@@ -2056,19 +2055,12 @@
 
     function renderLauncherList() {
         const listContainer = document.getElementById('launcher-list');
-        const emptyState = document.getElementById('launcher-empty');
         listContainer.innerHTML = '';
 
         const hasExportable = formsRegistry.some(f => f.data.some(r => recordIsExportable(f.id, r)));
         document.getElementById('export-btn').style.display = hasExportable ? 'flex' : 'none';
         document.getElementById('export-csv-btn').style.display = hasExportable ? 'flex' : 'none';
         document.getElementById('export-json-btn').style.display = hasExportable ? 'flex' : 'none';
-
-        if (formsRegistry.length === 0) {
-            emptyState.style.display = 'flex';
-            return;
-        }
-        emptyState.style.display = 'none';
 
         formsRegistry.forEach((form) => {
             const depth = getDepth(form.id);
