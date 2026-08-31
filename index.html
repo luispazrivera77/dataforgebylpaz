@@ -967,6 +967,7 @@
         .search-box-wrap input { font-size: 13px; padding: 11px 12px 11px 34px; }
         .empty-state { padding: 10px; gap: 12px; }
         .empty-state .ring { width: 58px; height: 58px; }
+        .empty-state .ring svg.ic { width: 20px; height: 20px; }
         .empty-state h3 { font-size: 16px; }
         .empty-state p { font-size: 12.5px; }
         .empty-desc-header { gap: 4px; }
@@ -999,7 +1000,7 @@
             <div class="header-actions">
                 <input type="file" id="import-file-input" accept=".xlsx, .xls" style="display:none;" onchange="importExcelData(event)">
 
-                <button onclick="startTour()" class="btn btn-ghost-gold btn-tiny" data-tip="Iniciar Tour Guiado" style="gap:5px;">
+                <button onclick="startTour('launcher')" class="btn btn-ghost-gold btn-tiny" data-tip="Iniciar Tour Guiado" style="gap:5px;">
                     <svg class="ic" viewBox="0 0 24 24" style="width:13px;height:13px;"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
                     Tour
                 </button>
@@ -1103,17 +1104,17 @@
         <h2 id="builder-heading">Definir formulario</h2>
         <p class="subtitle" id="builder-subtitle">Configura los campos, reglas y opcionalmente un Webhook de salida.</p>
 
-        <div style="margin-bottom: 14px;">
+        <div style="margin-bottom: 14px;" data-tour="builder-title-section">
             <label class="field-label" for="form-title-input">Nombre del formulario</label>
             <input type="text" id="form-title-input" placeholder="Ej. Clientes, Pedidos…">
         </div>
 
-        <div style="margin-bottom: 14px;">
+        <div style="margin-bottom: 14px;" data-tour="builder-webhook-section">
             <label class="field-label" for="form-webhook-input">Webhook URL (Opcional)</label>
             <input type="text" id="form-webhook-input" placeholder="https://hook.eu1.make.com/...">
         </div>
 
-        <div id="pivot-section" style="margin-bottom: 14px; display: none;">
+        <div id="pivot-section" style="margin-bottom: 14px; display: none;" data-tour="builder-pivot-section">
             <label class="field-label" for="form-pivot-source">Depende de (Relación Padre)</label>
             <select id="form-pivot-source" onchange="handlePivotChange()">
                 <option value="">No depende de otro — es principal</option>
@@ -1121,11 +1122,11 @@
         </div>
 
         <label class="field-label">Campos de datos</label>
-        <div id="builder-fields-container" class="builder-container"></div>
+        <div id="builder-fields-container" class="builder-container" data-tour="builder-fields-section"></div>
 
         <div class="gold-divider"></div>
 
-        <div style="display: flex; gap: 10px; margin-top: 4px;">
+        <div style="display: flex; gap: 10px; margin-top: 4px;" data-tour="builder-actions-section">
             <button type="button" onclick="addBuilderField()" class="btn btn-ghost-gold" style="flex: 1;">
                 <svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
                 Campo
@@ -1291,7 +1292,7 @@
     let renderedRecordId = null;
 
     let currentTourStep = 0;
-    let activeTourType = 'launcher'; // 'launcher' o 'runtime'
+    let activeTourType = 'launcher'; // 'launcher', 'runtime', o 'builder'
 
     const launcherTourSteps = [
         {
@@ -1339,6 +1340,34 @@
         }
     ];
 
+    const builderTourSteps = [
+        {
+            title: "📝 Nombre del formulario",
+            text: "Asigna un nombre claro que identifique a tu formulario (por ejemplo: Clientes, Productos, Tareas).",
+            target: "builder-title-section"
+        },
+        {
+            title: "🔗 Webhook de salida (Opcional)",
+            text: "Si deseas enviar cada registro guardado automáticamente a Make, Zapier u otro servicio externo, pega tu URL de Webhook aquí.",
+            target: "builder-webhook-section"
+        },
+        {
+            title: "🌿 Relación Padre-Hijo",
+            text: "Opcionalmente puedes indicar si este formulario depende de otro ya creado, estableciendo una relación jerárquica.",
+            target: "builder-pivot-section"
+        },
+        {
+            title: "📋 Campos de datos",
+            text: "Define los nombres, tipos de datos (texto, número, fecha, email, sí/no) y si son obligatorios para cada campo.",
+            target: "builder-fields-section"
+        },
+        {
+            title: "⚙️ Acciones de diseño",
+            text: "Agrega nuevos campos, cancela la edición o guarda tu formulario para empezar a capturar datos de inmediato.",
+            target: "builder-actions-section"
+        }
+    ];
+
     function startTour(type = 'launcher') {
         activeTourType = type;
         currentTourStep = 0;
@@ -1355,7 +1384,10 @@
     }
 
     function nextTourStep() {
-        const steps = activeTourType === 'runtime' ? runtimeTourSteps : launcherTourSteps;
+        let steps = launcherTourSteps;
+        if (activeTourType === 'runtime') steps = runtimeTourSteps;
+        else if (activeTourType === 'builder') steps = builderTourSteps;
+
         currentTourStep++;
         if (currentTourStep >= steps.length) {
             endTour();
@@ -1399,7 +1431,10 @@
         const previousHighlight = document.querySelector('.tour-target-highlight');
         if (previousHighlight) previousHighlight.classList.remove('tour-target-highlight');
 
-        const steps = activeTourType === 'runtime' ? runtimeTourSteps : launcherTourSteps;
+        let steps = launcherTourSteps;
+        if (activeTourType === 'runtime') steps = runtimeTourSteps;
+        else if (activeTourType === 'builder') steps = builderTourSteps;
+
         const step = steps[currentTourStep];
         document.getElementById('tour-title').textContent = step.title;
         document.getElementById('tour-text').textContent = step.text;
@@ -1693,7 +1728,6 @@
         recordIdCounter = 500;
         showToast("¡Plantilla cargada con éxito!");
         showLauncher();
-        // Iniciar automáticamente el tour en la pantalla de ejecución al cargar plantilla
         setTimeout(() => {
             if (formsRegistry.length > 0) {
                 launchForm(formsRegistry[0].id, { fromLauncher: true });
@@ -1811,6 +1845,8 @@
             fields: [{ name: "", type: "text", required: false }], data: []
         });
         editFormStructure(newId, { isNew: true });
+        // Iniciar automáticamente el tour en la pantalla de constructor al hacer clic en + Nuevo
+        setTimeout(() => startTour('builder'), 250);
     }
 
     function editFormStructure(formId, opts) {
@@ -2382,7 +2418,6 @@
                     showLauncher();
                     showToast("Datos y relaciones importados exitosamente");
                     
-                    // Iniciar automáticamente el tour en la pantalla de ejecución al importar Excel
                     setTimeout(() => {
                         if (formsRegistry.length > 0) {
                             launchForm(formsRegistry[0].id, { fromLauncher: true });
