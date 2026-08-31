@@ -1786,6 +1786,7 @@
     }
 
     function loadTemplate(type) {
+        let newForms = [];
         if (type === 'supermercado') {
             const prodNames = [
                 "Plátano", "Manzana", "Naranja", "Palta", "Limón", "Tomate", "Lechuga", "Cebolla", "Papa", "Zanahoria",
@@ -1805,8 +1806,9 @@
                 "Categoría": idx < 26 ? "Frutas y Verduras" : (idx < 34 ? "Lácteos y Pan" : (idx < 47 ? "Despensa" : (idx < 60 ? "Carnes y Pescados" : "Aseo y Hogar")))
             }));
 
-            formsRegistry = [{
-                id: 1, title: "Lista Supermercado", webhook: "", pivotFormId: null, pivotField: "",
+            const baseId = Date.now();
+            newForms = [{
+                id: baseId, title: "Lista Supermercado", webhook: "", pivotFormId: null, pivotField: "",
                 fields: [
                     { name: "Producto", type: "text", required: true },
                     { name: "Cantidad", type: "text", required: true },
@@ -1816,9 +1818,11 @@
                 data: supermarketData
             }];
         } else if (type === 'obras') {
-            formsRegistry = [
+            const baseId1 = Date.now();
+            const baseId2 = baseId1 + 1;
+            newForms = [
                 {
-                    id: 1, title: "Obras", webhook: "", pivotFormId: null, pivotField: "",
+                    id: baseId1, title: "Obras", webhook: "", pivotFormId: null, pivotField: "",
                     fields: [
                         { name: "Nombre Obra", type: "text", required: true },
                         { name: "Dirección", type: "text", required: false },
@@ -1834,7 +1838,7 @@
                     ]
                 },
                 {
-                    id: 2, title: "Compras", webhook: "", pivotFormId: 1, pivotField: "Nombre Obra",
+                    id: baseId2, title: "Compras", webhook: "", pivotFormId: baseId1, pivotField: "Nombre Obra",
                     fields: [
                         { name: "Fecha compra", type: "date", required: true },
                         { name: "Producto comprado", type: "text", required: true },
@@ -1852,8 +1856,9 @@
                 }
             ];
         } else if (type === 'inventario') {
-            formsRegistry = [{
-                id: 1, title: "Inventario Bodega", webhook: "", pivotFormId: null, pivotField: "",
+            const baseId = Date.now();
+            newForms = [{
+                id: baseId, title: "Inventario Bodega", webhook: "", pivotFormId: null, pivotField: "",
                 fields: [
                     { name: "Producto", type: "text", required: true },
                     { name: "Categoría", type: "text", required: true },
@@ -1869,8 +1874,9 @@
                 ]
             }];
         } else if (type === 'encuesta') {
-            formsRegistry = [{
-                id: 1, title: "Encuesta Satisfacción", webhook: "", pivotFormId: null, pivotField: "",
+            const baseId = Date.now();
+            newForms = [{
+                id: baseId, title: "Encuesta Satisfacción", webhook: "", pivotFormId: null, pivotField: "",
                 fields: [
                     { name: "Usuario", type: "text", required: true },
                     { name: "Servicio", type: "text", required: true },
@@ -1885,8 +1891,9 @@
                 ]
             }];
         } else if (type === 'usuarios') {
-            formsRegistry = [{
-                id: 1, title: "Registro Usuarios", webhook: "", pivotFormId: null, pivotField: "",
+            const baseId = Date.now();
+            newForms = [{
+                id: baseId, title: "Registro Usuarios", webhook: "", pivotFormId: null, pivotField: "",
                 fields: [
                     { name: "Nombre", type: "text", required: true },
                     { name: "Apellido", type: "text", required: true },
@@ -1901,8 +1908,9 @@
                 ]
             }];
         } else if (type === 'incidencias') {
-            formsRegistry = [{
-                id: 1, title: "Reporte Incidencias", webhook: "", pivotFormId: null, pivotField: "",
+            const baseId = Date.now();
+            newForms = [{
+                id: baseId, title: "Reporte Incidencias", webhook: "", pivotFormId: null, pivotField: "",
                 fields: [
                     { name: "Descripción", type: "text", required: true },
                     { name: "Prioridad", type: "text", required: true },
@@ -1917,6 +1925,9 @@
                 ]
             }];
         }
+
+        // Agregar las plantillas generadas a la lista sin destruir los formularios previos existentes
+        formsRegistry.push(...newForms);
         recordIdCounter = 500;
         deletedRecordsStack = [];
         currentSortColumn = null;
@@ -1924,8 +1935,8 @@
         showToast("¡Plantilla cargada con éxito!");
         showLauncher();
         setTimeout(() => {
-            if (formsRegistry.length > 0) {
-                launchForm(formsRegistry[0].id, { fromLauncher: true });
+            if (newForms.length > 0) {
+                launchForm(newForms[0].id, { fromLauncher: true });
                 startTour('runtime');
             }
         }, 300);
@@ -2067,7 +2078,7 @@
             const stack = hasDescendants(form.id);
             const card = document.createElement('div');
             card.className = `app-icon-card ${stack ? 'has-stack' : ''}`;
-            const metaText = !form.pivotFormId ? `${countFilledRecords(form, form.data)} registros` : `depende de <strong>${getForm(form.pivotFormId).title}</strong>`;
+            const metaText = !form.pivotFormId ? `${countFilledRecords(form, form.data)} registros` : `depende de <strong>${getForm(form.pivotFormId) ? getForm(form.pivotFormId).title : 'Padre'}</strong>`;
 
             card.innerHTML = `
                 <span class="depth-dot" style="background:${depthColor(depth)};"></span>
@@ -2308,6 +2319,7 @@
         const chain = [...navStack, activeFormId];
         return chain.map((id, i) => {
             const f = getForm(id);
+            if (!f) return '';
             const isLast = i === chain.length - 1;
             return `<span class="crumb ${isLast ? 'crumb-active' : ''}"><span class="depth-dot" style="background:${depthColor(getDepth(id))};"></span>${f.title}</span>${isLast ? '' : '<span>/</span>'}`;
         }).join('');
@@ -2315,6 +2327,7 @@
 
     function renderRuntime() {
         const formObj = getForm(activeFormId);
+        if (!formObj) { showLauncher(); return; }
         document.getElementById('runtime-breadcrumb').innerHTML = buildBreadcrumb();
         document.getElementById('runtime-title').textContent = formObj.title;
         document.getElementById('runtime-depth-dot').style.background = depthColor(getDepth(formObj.id));
@@ -2371,7 +2384,7 @@
             const parentForm = getForm(formObj.pivotFormId);
             const parentRecord = getActiveRecord(formObj.pivotFormId);
             const label = parentRecord ? (parentRecord[formObj.pivotField] || '(sin valor)') : '(sin padre)';
-            html += `<div class="context-banner">Ligado a <strong>${parentForm.title}</strong> — ${formObj.pivotField}: <strong>${label}</strong></div>`;
+            html += `<div class="context-banner">Ligado a <strong>${parentForm ? parentForm.title : 'Padre'}</strong> — ${formObj.pivotField}: <strong>${label}</strong></div>`;
         }
 
         formObj.fields.forEach(f => {
@@ -2682,8 +2695,8 @@
         const headerRow = formObj.fields.map(f => f.name);
         if (formObj.pivotFormId) {
             parentForm = getForm(formObj.pivotFormId);
-            parentLabelField = parentForm.fields[0] ? parentForm.fields[0].name : null;
-            headerRow.unshift(`${parentForm.title}`);
+            parentLabelField = parentForm && parentForm.fields[0] ? parentForm.fields[0].name : null;
+            headerRow.unshift(parentForm ? parentForm.title : 'Padre');
         }
         const rows = [headerRow];
         records.forEach(r => {
@@ -2756,7 +2769,7 @@
                 }
 
                 const workbook = XLSX.read(new Uint8Array(e.target.result), { type: 'array', cellDates: true });
-                let tempForms = [], nextId = 1;
+                let tempForms = [], nextId = Date.now();
                 
                 function formatCellDate(val) {
                     if (!val) return '';
@@ -2835,7 +2848,7 @@
                 }
 
                 if (tempForms.length > 0) {
-                    formsRegistry = tempForms;
+                    formsRegistry.push(...tempForms);
                     recordIdCounter = Math.max(...formsRegistry.flatMap(f => f.data.map(r => r._id || 0)), 0) + 1;
                     deletedRecordsStack = [];
                     currentSortColumn = null;
@@ -3013,7 +3026,7 @@
         applyEmptyToggleIcon();
     }
 
-    // Inicialización al cargar la página con persistencia recuperada sin sobreescribir modificaciones
+    // Inicialización al cargar la página con persistencia recuperada
     initMiniTips();
     applyThemeIcon();
     initHeroCollapse();
