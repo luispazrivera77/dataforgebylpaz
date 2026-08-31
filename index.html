@@ -786,7 +786,14 @@
         position: sticky;
         top: 0;
         border-bottom: 1px solid var(--border-gold);
-        animation: headerPulse 3s ease-in-out infinite;
+        cursor: pointer;
+        user-select: none;
+        transition: background 0.15s;
+    }
+
+    table.records-table th:hover {
+        background: var(--surface-hover);
+        color: var(--gold-hover);
     }
 
     table.records-table td {
@@ -1317,6 +1324,10 @@
     let recordSnapshot = null;
     let deletedRecordsStack = [];
 
+    // Variables de ordenamiento de columnas
+    let currentSortColumn = null;
+    let currentSortDirection = 'asc';
+
     let currentTourStep = 0;
     let activeTourType = 'launcher';
 
@@ -1582,10 +1593,40 @@
 
     function getVisibleRecords(formId) {
         const form = getForm(formId);
-        if (!form.pivotFormId) return form.data;
-        const parentRecord = getActiveRecord(form.pivotFormId);
-        if (!parentRecord) return [];
-        return form.data.filter(r => r._parentId === parentRecord._id);
+        let list = [];
+        if (!form.pivotFormId) {
+            list = [...form.data];
+        } else {
+            const parentRecord = getActiveRecord(form.pivotFormId);
+            if (!parentRecord) return [];
+            list = form.data.filter(r => r._parentId === parentRecord._id);
+        }
+
+        // Aplicar ordenamiento si está activo
+        if (currentSortColumn) {
+            list.sort((a, b) => {
+                let valA = a[currentSortColumn];
+                let valB = b[currentSortColumn];
+                if (valA === undefined) valA = '';
+                if (valB === undefined) valB = '';
+
+                // Intento numérico
+                let numA = parseFloat(valA);
+                let numB = parseFloat(valB);
+                if (!isNaN(numA) && !isNaN(numB)) {
+                    return currentSortDirection === 'asc' ? numA - numB : numB - numA;
+                }
+
+                // Alfabético
+                let strA = String(valA).toLowerCase();
+                let strB = String(valB).toLowerCase();
+                if (strA < strB) return currentSortDirection === 'asc' ? -1 : 1;
+                if (strA > strB) return currentSortDirection === 'asc' ? 1 : -1;
+                return 0;
+            });
+        }
+
+        return list;
     }
 
     function getActiveRecord(formId) {
@@ -1626,6 +1667,7 @@
         renderedRecordId = null;
         recordSnapshot = null;
         viewMode = 'table';
+        currentSortColumn = null;
         document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
         document.getElementById('screen-launcher').classList.remove('hidden');
         
@@ -1646,6 +1688,7 @@
         navStack = [];
         recordIdCounter = 1;
         deletedRecordsStack = [];
+        currentSortColumn = null;
         showToast("Aplicación reiniciada");
         showLauncher();
     }
@@ -1784,6 +1827,7 @@
         }
         recordIdCounter = 500;
         deletedRecordsStack = [];
+        currentSortColumn = null;
         showToast("¡Plantilla cargada con éxito!");
         showLauncher();
         setTimeout(() => {
@@ -1799,7 +1843,6 @@
         const formObj = getForm(activeFormId);
         if (!formObj) return;
 
-        // Incluir también formularios hijos si los hay
         const children = getChildForms(activeFormId);
         const formsToShare = [formObj, ...children];
 
@@ -1909,6 +1952,7 @@
                 navStack = parentsPath;
                 activeFormId = form.id;
                 viewMode = 'table';
+                currentSortColumn = null;
                 document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
                 document.getElementById('screen-runtime').classList.remove('hidden');
                 renderRuntime();
@@ -2124,6 +2168,7 @@
         else if (opts.fromLauncher) navStack = [];
         activeFormId = formId;
         viewMode = 'table';
+        currentSortColumn = null;
         document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
         document.getElementById('screen-runtime').classList.remove('hidden');
         renderRuntime();
@@ -2135,6 +2180,7 @@
         if (prevId === undefined) { showLauncher(); return; }
         activeFormId = prevId;
         viewMode = 'table';
+        currentSortColumn = null;
         renderRuntime();
     }
 
@@ -2219,11 +2265,29 @@
         card.innerHTML = html || `<p class="subtitle">Sin campos definidos.</p>`;
     }
 
+    function sortTableByColumn(columnName) {
+        if (currentSortColumn === columnName) {
+            currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
+        } else {
+            currentSortColumn = columnName;
+            currentSortDirection = 'asc';
+        }
+        renderRuntime();
+        showToast(`Ordenado por ${columnName} (${currentSortDirection === 'asc' ? 'Asc' : 'Desc'})`);
+    }
+
     function renderRecordsTable(formObj, recordList, activeIdx) {
         const tableEl = document.getElementById('runtime-table');
         const cols = formObj.fields;
         let html = `<div class="table-wrap"><table class="records-table"><thead><tr>`;
-        cols.forEach(f => { html += `<th>${f.name}</th>`; });
+        
+        cols.forEach(f => {
+            let indicator = '';
+            if (currentSortColumn === f.name) {
+                indicator = currentSortDirection === 'asc' ? ' ▲' : ' ▼';
+            }
+            html += `<th onclick="sortTableByColumn('${f.name}')" title="Haz clic para ordenar">${f.name}${indicator}</th>`;
+        });
         html += `</tr></thead><tbody>`;
 
         recordList.forEach((rec, i) => {
@@ -2250,7 +2314,12 @@
     }
 
     function selectRecordFromTable(idx) {
-        activeIndexByForm[activeFormId] = idx;
+        const list = getVisibleRecords(activeFormId);
+        const selectedRec = list[idx];
+        const formObj = getForm(activeFormId);
+        const realIdx = formObj.data.findIndex(r => r._id === selectedRec._id);
+
+        activeIndexByForm[activeFormId] = realIdx >= 0 ? realIdx : idx;
         resetDescendantIndices(activeFormId);
         viewMode = 'record';
         renderRuntime();
@@ -2443,10 +2512,22 @@
     function changeRecord(direction) {
         saveCurrentRuntimeData();
         const list = getVisibleRecords(activeFormId);
-        let idx = (activeIndexByForm[activeFormId] || 0) + direction;
-        if (idx < 0) idx = 0;
-        if (idx >= list.length) idx = list.length - 1;
-        activeIndexByForm[activeFormId] = idx;
+        let visibleIdx = 0;
+        for (let i = 0; i < list.length; i++) {
+            if (list[i]._id === renderedRecordId) {
+                visibleIdx = i;
+                break;
+            }
+        }
+        let newVisibleIdx = visibleIdx + direction;
+        if (newVisibleIdx < 0) newVisibleIdx = 0;
+        if (newVisibleIdx >= list.length) newVisibleIdx = list.length - 1;
+
+        const targetRec = list[newVisibleIdx];
+        const formObj = getForm(activeFormId);
+        const realIdx = formObj.data.findIndex(r => r._id === targetRec._id);
+
+        activeIndexByForm[activeFormId] = realIdx >= 0 ? realIdx : 0;
         resetDescendantIndices(activeFormId);
         renderRuntime();
     }
@@ -2461,7 +2542,7 @@
             parentId = parentRecord._id;
         }
         formObj.data.push({ _id: nextRecordId(), _parentId: parentId });
-        activeIndexByForm[formObj.id] = getVisibleRecords(formObj.id).length - 1;
+        activeIndexByForm[formObj.id] = formObj.data.length - 1;
         resetDescendantIndices(activeFormId);
         viewMode = 'record';
         renderRuntime();
@@ -2629,6 +2710,7 @@
                     formsRegistry = tempForms;
                     recordIdCounter = Math.max(...formsRegistry.flatMap(f => f.data.map(r => r._id || 0)), 0) + 1;
                     deletedRecordsStack = [];
+                    currentSortColumn = null;
                     showLauncher();
                     showToast("Datos y relaciones importados exitosamente");
                 }
