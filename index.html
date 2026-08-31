@@ -711,7 +711,6 @@
 
     .nav-bar .btn { flex: 1; }
 
-    /* CORRECCIÓN: Permitir que los botones de acción inferior fluyan y se acomoden bien en celulares */
     .record-actions-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
     .record-actions-row .btn { flex: 1 1 calc(33% - 6px); min-width: 90px; font-size: 11px; padding: 10px 6px; }
 
@@ -1871,6 +1870,7 @@
             }
         }
 
+        // CORRECCIÓN: Si no soporta compartir archivos nativos directamente, abrimos el modal de opciones para descargar o enviar por web
         document.getElementById('share-modal').classList.remove('hidden');
     }
 
@@ -1902,7 +1902,7 @@
     function shareViaWhatsApp() {
         const { formTitle } = getShareBlobAndData();
         downloadFormJSONFile();
-        const text = encodeURIComponent(`Hola, te comparto el formulario "${formTitle}" para DataForge. Descarga el archivo JSON adjunto o importalo en tu aplicación.`);
+        const text = encodeURIComponent(`Hola, te comparto el formulario "${formTitle}" para DataForge. Adjunto el archivo JSON descargado en tu dispositivo para importarlo.`);
         window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
     }
 
