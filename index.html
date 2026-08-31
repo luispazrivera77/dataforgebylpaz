@@ -756,6 +756,17 @@
         -webkit-overflow-scrolling: touch;
     }
 
+    @keyframes headerPulse {
+        0%, 100% {
+            filter: brightness(1);
+            text-shadow: 0 0 0px rgba(217, 166, 83, 0);
+        }
+        50% {
+            filter: brightness(1.35);
+            text-shadow: 0 0 10px var(--gold);
+        }
+    }
+
     table.records-table {
         border-collapse: collapse;
         width: 100%;
@@ -775,6 +786,7 @@
         position: sticky;
         top: 0;
         border-bottom: 1px solid var(--border-gold);
+        animation: headerPulse 3s ease-in-out infinite;
     }
 
     table.records-table td {
@@ -2233,7 +2245,6 @@
             currentRecord[k] = recordSnapshot[k];
         });
 
-        // Actualizar visualmente los inputs en pantalla de inmediato
         document.querySelectorAll('#runtime-card .r-input').forEach(input => {
             const name = input.dataset.name;
             const val = currentRecord[name];
