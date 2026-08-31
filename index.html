@@ -711,11 +711,12 @@
 
     .nav-bar .btn { flex: 1; }
 
-    .record-actions-row { display: flex; gap: 8px; margin-top: 10px; }
-    .record-actions-row .btn { flex: 1; font-size: 11px; padding: 10px 6px; }
+    /* CORRECCIÓN: Permitir que los botones de acción inferior fluyan y se acomoden bien en celulares */
+    .record-actions-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+    .record-actions-row .btn { flex: 1 1 calc(33% - 6px); min-width: 90px; font-size: 11px; padding: 10px 6px; }
 
-    .action-row { display: flex; gap: 8px; margin-top: 10px; }
-    .action-row .btn { flex: 1; font-size: 12px; }
+    .action-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+    .action-row .btn { flex: 1 1 calc(50% - 6px); min-width: 110px; font-size: 12px; }
 
     .btn-saved {
         background: var(--success) !important;
