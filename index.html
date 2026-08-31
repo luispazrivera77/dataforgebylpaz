@@ -842,7 +842,7 @@
     .tour-bubble.show { display: flex; }
     .tour-title { font-family: var(--font-display); font-size: 15px; font-weight: 600; color: var(--gold); margin: 0; }
     .tour-text { font-size: 13px; color: var(--text-dim); line-height: 1.5; margin: 0; }
-    .tour-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 4px; }
+    .tour-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 4px; flex-wrap: wrap; gap: 6px; }
     .tour-step-indicator { font-family: var(--font-mono); font-size: 10px; color: var(--text-faint); }
 
     .tour-target-highlight {
@@ -1231,8 +1231,8 @@
     <p id="tour-text" class="tour-text">Descripción de la función actual.</p>
     <div class="tour-footer">
         <span id="tour-step-indicator" class="tour-step-indicator">Paso 1 de 4</span>
-        <div style="display:flex; gap:6px;">
-            <button onclick="endTour()" class="btn btn-tiny btn-ghost-gold" style="padding: 5px 10px;">Salir</button>
+        <div style="display:flex; gap:6px; flex-wrap:wrap;">
+            <button onclick="endTour()" class="btn btn-tiny btn-danger-outline" style="padding: 5px 8px;">Terminar tour</button>
             <button onclick="nextTourStep()" class="btn btn-tiny btn-gold" style="padding: 5px 12px;">Siguiente →</button>
         </div>
     </div>
