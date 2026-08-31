@@ -1209,7 +1209,7 @@
                 <svg class="ic" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
                 Guardar
             </button>
-            <button onclick="undoCurrentRecordChanges()" class="btn btn-ghost-gold" data-tip="Deshacer cambios no guardados">
+            <button onclick="undoCurrentRecordChanges()" class="btn btn-ghost-gold" data-tip="Deshacer cambios o restaurar último registro eliminado">
                 <svg class="ic" viewBox="0 0 24 24"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>
                 Deshacer
             </button>
@@ -1311,6 +1311,7 @@
     let viewMode = 'table';
     let renderedRecordId = null;
     let recordSnapshot = null;
+    let deletedRecordsStack = []; // Pila de registros eliminados para poder deshacer
 
     let currentTourStep = 0;
     let activeTourType = 'launcher';
@@ -1640,6 +1641,7 @@
         editingFormId = null;
         navStack = [];
         recordIdCounter = 1;
+        deletedRecordsStack = [];
         showToast("Aplicación reiniciada");
         showLauncher();
     }
@@ -1765,6 +1767,7 @@
             }];
         }
         recordIdCounter = 500;
+        deletedRecordsStack = [];
         showToast("¡Plantilla cargada con éxito!");
         showLauncher();
         setTimeout(() => {
@@ -2237,7 +2240,28 @@
     }
 
     function undoCurrentRecordChanges() {
-        if (!activeFormId || renderedRecordId === null || !recordSnapshot) return;
+        if (!activeFormId) return;
+
+        // Si hay un registro recientemente eliminado para este formulario, lo restauramos
+        const lastDeletedIndex = deletedRecordsStack.map(d => d.formId).lastIndexOf(activeFormId);
+        if (lastDeletedIndex !== -1) {
+            const deletedInfo = deletedRecordsStack.splice(lastDeletedIndex, 1)[0];
+            const formObj = getForm(activeFormId);
+            if (formObj) {
+                formObj.data.push(deletedInfo.record);
+                // Restaurar también sus hijos si los había
+                deletedInfo.children.forEach(childRec => {
+                    const childForm = getForm(childRec.formId);
+                    if (childForm) childForm.data.push(childRec.record);
+                });
+                renderRuntime();
+                showToast("Registro eliminado restaurado");
+                return;
+            }
+        }
+
+        // Si no hay eliminaciones pendientes, deshacemos cambios en el registro actual
+        if (renderedRecordId === null || !recordSnapshot) return;
         const currentRecord = findRecordById(activeFormId, renderedRecordId);
         if (!currentRecord) return;
 
@@ -2311,6 +2335,16 @@
         showToast("Registro limpiado");
     }
 
+    function collectDescendantRecords(formId, recordId, collectedList) {
+        getChildForms(formId).forEach(child => {
+            const matches = child.data.filter(r => r._parentId === recordId);
+            matches.forEach(m => {
+                collectedList.push({ formId: child.id, record: JSON.parse(JSON.stringify(m)) });
+                collectDescendantRecords(child.id, m._id, collectedList);
+            });
+        });
+    }
+
     function deleteDescendantRecords(formId, recordId) {
         getChildForms(formId).forEach(child => {
             child.data.filter(r => r._parentId === recordId).forEach(r => deleteDescendantRecords(child.id, r._id));
@@ -2325,13 +2359,23 @@
         if (!currentRecord) return;
         const ok = await showConfirmDialog('¿Eliminar este registro?');
         if (!ok) return;
+
+        // Respaldar en la pila de eliminados para poder recuperarlo con Deshacer
+        let childrenBackup = [];
+        collectDescendantRecords(activeFormId, currentRecord._id, childrenBackup);
+        deletedRecordsStack.push({
+            formId: activeFormId,
+            record: JSON.parse(JSON.stringify(currentRecord)),
+            children: childrenBackup
+        });
+
         deleteDescendantRecords(activeFormId, currentRecord._id);
         formObj.data = formObj.data.filter(r => r._id !== currentRecord._id);
         renderedRecordId = null;
         recordSnapshot = null;
         resetDescendantIndices(activeFormId);
         renderRuntime();
-        showToast("Registro eliminado");
+        showToast("Registro eliminado (puedes restaurarlo con Deshacer)");
     }
 
     function changeRecord(direction) {
@@ -2517,6 +2561,7 @@
                 if (tempForms.length > 0) {
                     formsRegistry = tempForms;
                     recordIdCounter = Math.max(...formsRegistry.flatMap(f => f.data.map(r => r._id || 0)), 0) + 1;
+                    deletedRecordsStack = [];
                     showLauncher();
                     showToast("Datos y relaciones importados exitosamente");
                     
