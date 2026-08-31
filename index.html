@@ -473,7 +473,7 @@
 
     @media (hover: hover) and (pointer: fine) {
         .empty-state .ring:hover::before { animation-play-state: paused; opacity: 0; }
-        .empty-state .ring:hover svg.ic { animation: none; }
+        .empty-state .ring svg.ic { animation: none; }
     }
 
     @keyframes ringShineSpin {
@@ -2233,7 +2233,17 @@
             currentRecord[k] = recordSnapshot[k];
         });
 
-        renderSingleRecordCard(getForm(activeFormId), currentRecord);
+        // Actualizar visualmente los inputs en pantalla de inmediato
+        document.querySelectorAll('#runtime-card .r-input').forEach(input => {
+            const name = input.dataset.name;
+            const val = currentRecord[name];
+            if (input.type === 'checkbox') {
+                input.checked = !!val;
+            } else {
+                input.value = val !== undefined ? val : '';
+            }
+        });
+
         showToast("Cambios deshechos");
     }
 
