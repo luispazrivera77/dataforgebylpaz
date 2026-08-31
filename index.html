@@ -1197,6 +1197,10 @@
                 <svg class="ic" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
                 Guardar
             </button>
+            <button onclick="undoCurrentRecordChanges()" class="btn btn-ghost-gold" data-tip="Deshacer cambios no guardados">
+                <svg class="ic" viewBox="0 0 24 24"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>
+                Deshacer
+            </button>
             <button onclick="clearCurrentRecord()" class="btn btn-danger-outline">
                 <svg class="ic" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"/></svg>
                 Limpiar
@@ -1294,6 +1298,7 @@
     let navStack = [];
     let viewMode = 'table';
     let renderedRecordId = null;
+    let recordSnapshot = null;
 
     let currentTourStep = 0;
     let activeTourType = 'launcher';
@@ -1339,7 +1344,7 @@
         },
         {
             title: "💾 Acciones de control",
-            text: "Usa estos botones para guardar cambios en el servidor/webhook, limpiar datos, crear nuevos registros o eliminarlos con total seguridad.",
+            text: "Usa estos botones para guardar cambios en el servidor/webhook, deshacer modificaciones recientes, limpiar datos o eliminarlos.",
             target: "record-actions"
         }
     ];
@@ -1602,6 +1607,7 @@
         navStack = [];
         activeFormId = null;
         renderedRecordId = null;
+        recordSnapshot = null;
         viewMode = 'table';
         document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
         document.getElementById('screen-launcher').classList.remove('hidden');
@@ -2112,12 +2118,14 @@
             document.getElementById('runtime-table').style.display = 'block';
             renderRecordsTable(formObj, recordList, idx);
             renderedRecordId = null;
+            recordSnapshot = null;
         } else {
             document.getElementById('record-nav-bar').style.display = 'flex';
             document.getElementById('runtime-card').style.display = 'flex';
             document.getElementById('runtime-table').style.display = 'none';
             renderSingleRecordCard(formObj, record);
             renderedRecordId = record._id !== undefined ? record._id : null;
+            recordSnapshot = JSON.parse(JSON.stringify(record));
         }
         renderChildrenSection(formObj.id, record);
     }
@@ -2216,6 +2224,19 @@
         });
     }
 
+    function undoCurrentRecordChanges() {
+        if (!activeFormId || renderedRecordId === null || !recordSnapshot) return;
+        const currentRecord = findRecordById(activeFormId, renderedRecordId);
+        if (!currentRecord) return;
+
+        Object.keys(recordSnapshot).forEach(k => {
+            currentRecord[k] = recordSnapshot[k];
+        });
+
+        renderSingleRecordCard(getForm(activeFormId), currentRecord);
+        showToast("Cambios deshechos");
+    }
+
     function saveCurrentRecordExplicit() {
         const formObj = getForm(activeFormId);
         if (!formObj) return;
@@ -2236,10 +2257,12 @@
         }
 
         saveCurrentRuntimeData();
+        const currentRecord = findRecordById(activeFormId, renderedRecordId);
+        if (currentRecord) recordSnapshot = JSON.parse(JSON.stringify(currentRecord));
+        
         showToast("Registro guardado con éxito");
 
         if (formObj.webhook) {
-            const currentRecord = findRecordById(activeFormId, renderedRecordId);
             fetch(formObj.webhook, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -2284,6 +2307,7 @@
         deleteDescendantRecords(activeFormId, currentRecord._id);
         formObj.data = formObj.data.filter(r => r._id !== currentRecord._id);
         renderedRecordId = null;
+        recordSnapshot = null;
         resetDescendantIndices(activeFormId);
         renderRuntime();
         showToast("Registro eliminado");
@@ -2404,7 +2428,6 @@
                     let header = rows[0].map(h => String(h || '').trim()).filter(Boolean);
                     if (header.length === 0) return;
 
-                    // Detectar si alguna columna contiene valores Sí/No para mapearla automáticamente como checkbox (ticket)
                     let sampleRows = rows.slice(1, 10);
                     let checkboxCols = new Set();
                     header.forEach((h, colIdx) => {
