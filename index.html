@@ -1347,7 +1347,7 @@
             <p>DataForge es una aplicación web para trabajar, construir y gestionar datos, formularios y estructuras de datos de forma visual y ligera. Pensada para usuarios que necesitan trabajar, prototipar o gestionar pequeños flujos de captura sin depender de soluciones complejas.</p>
             
             <h3>🛠️ Historial de Correcciones y Cambios</h3>
-            <p><strong>v1.1.0:</strong> Se añade persistencia local con <code>localStorage</code> para que los formularios y registros se guarden automáticamente entre sesiones de navegación.</p>
+            <p><strong>v1.1.0:</strong> Se añade persistencia local con <code>localStorage</code> y se corrige la selección exacta de filas al utilizar el buscador global.</p>
         </div>
     </div>
 </div>
@@ -2028,8 +2028,27 @@
         if (!targetForm) return;
         saveCurrentRuntimeData();
         navStack = [];
+        
+        // Calcular la posición exacta del registro dentro de los visibles o de la estructura general
+        const visibleList = getVisibleRecords(targetFormId);
+        const visibleIdx = visibleList.findIndex(r => r._id === targetRecordId);
+        
+        if (visibleIdx !== -1) {
+            const realIndex = targetForm.data.findIndex(r => r._id === targetRecordId);
+            if (realIndex !== -1) {
+                activeIndexByForm[targetFormId] = realIndex;
+            }
+        } else {
+            // Si está filtrado o pertenece a otro contexto, aseguramos posicionar el índice real
+            const realIndex = targetForm.data.findIndex(r => r._id === targetRecordId);
+            if (realIndex !== -1) {
+                activeIndexByForm[targetFormId] = realIndex;
+            }
+        }
+
         activeFormId = targetFormId;
         viewMode = 'table';
+        currentSortColumn = null;
         document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
         document.getElementById('screen-runtime').classList.remove('hidden');
         renderRuntime();
