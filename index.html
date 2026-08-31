@@ -124,12 +124,25 @@
         gap: 12px;
     }
 
+    /* Animación de pulso de luz para el título de la aplicación */
+    @keyframes textLightPulse {
+        0%, 100% {
+            text-shadow: 0 0 4px rgba(217, 166, 83, 0.2), 0 0 12px rgba(217, 166, 83, 0.1);
+            opacity: 0.92;
+        }
+        50% {
+            text-shadow: 0 0 12px rgba(217, 166, 83, 0.7), 0 0 24px rgba(217, 166, 83, 0.4), 0 0 35px rgba(217, 166, 83, 0.2);
+            opacity: 1;
+        }
+    }
+
     .brand {
         font-family: var(--font-display);
         font-weight: 600;
         font-size: 22px;
         letter-spacing: -0.01em;
         color: var(--text);
+        animation: textLightPulse 3s ease-in-out infinite;
     }
 
     .brand small {
@@ -617,7 +630,30 @@
 
     .form-header-title { display: flex; align-items: center; gap: 10px; min-width: 0; }
     .form-header-title .depth-dot { width: 9px; height: 9px; flex-shrink: 0; }
-    #runtime-title { font-family: var(--font-display); font-weight: 600; font-size: 18px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    
+    /* Animación de pulso de luz para el nombre del formulario o tabla en la pantalla de ejecución */
+    @keyframes runtimeTitleLightPulse {
+        0%, 100% {
+            text-shadow: 0 0 3px rgba(217, 166, 83, 0.15), 0 0 10px rgba(217, 166, 83, 0.05);
+            opacity: 0.94;
+        }
+        50% {
+            text-shadow: 0 0 10px rgba(217, 166, 83, 0.65), 0 0 22px rgba(217, 166, 83, 0.35), 0 0 30px rgba(217, 166, 83, 0.15);
+            opacity: 1;
+        }
+    }
+
+    #runtime-title { 
+        font-family: var(--font-display); 
+        font-weight: 600; 
+        font-size: 18px; 
+        color: var(--text); 
+        overflow: hidden; 
+        text-overflow: ellipsis; 
+        white-space: nowrap; 
+        animation: runtimeTitleLightPulse 3s ease-in-out infinite;
+    }
+
     #record-indicator { font-family: var(--font-mono); font-size: 11.5px; color: var(--gold); background: var(--gold-soft); padding: 3px 8px; border-radius: 6px; border: 1px solid var(--border-gold); }
 
     .runtime-scroll { flex: 1; overflow-y: auto; min-height: 0; padding-right: 4px; }
