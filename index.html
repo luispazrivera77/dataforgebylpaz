@@ -88,7 +88,7 @@
         flex-direction: column;
         position: relative;
         box-shadow: var(--container-shadow);
-        overflow: hidden; /* CORREGIDO: Evita que elementos flotantes se queden asomados abajo */
+        overflow: hidden;
     }
 
     @media (min-width: 700px) {
@@ -811,12 +811,6 @@
         letter-spacing: 0.05em;
     }
 
-    .gold-divider {
-        height: 1px;
-        background: linear-gradient(90deg, transparent, var(--border-gold), transparent);
-        margin: 16px 0;
-    }
-
     #tour-overlay {
         position: fixed;
         inset: 0;
@@ -930,7 +924,6 @@
     .confirm-modal-actions { display: flex; gap: 10px; }
     .confirm-modal-actions .btn { flex: 1; }
 
-    /* CORREGIDO: Se asegura que el toast se mueva completamente fuera de la pantalla (translateY 200%) para que no quede asomado */
     #toast-notification {
         position: fixed;
         bottom: 24px;
@@ -950,7 +943,7 @@
         gap: 8px;
         max-width: calc(100vw - 32px);
         text-align: center;
-        pointer-events: none; /* CORREGIDO: Evita toques fantasmas */
+        pointer-events: none;
     }
     #toast-notification.show { transform: translateX(-50%) translateY(0); pointer-events: auto; }
 
@@ -1162,8 +1155,8 @@
                 <strong id="runtime-title">Formulario</strong>
             </div>
             <div style="display:flex; align-items:center; gap:10px;">
-                <span id="record-indicator">1 / 1</span>
-                <div id="view-toggle" class="view-toggle" role="group" aria-label="Cambiar vista">
+                <span id="record-indicator" data-tour="record-indicator">1 / 1</span>
+                <div id="view-toggle" class="view-toggle" role="group" aria-label="Cambiar vista" data-tour="view-toggle">
                     <span class="view-toggle-opt" data-mode="record" onclick="setViewMode('record')" role="button" tabindex="0">
                         <svg class="ic" viewBox="0 0 24 24" style="width:12px;height:12px;"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>
                     </span>
@@ -1176,8 +1169,8 @@
 
         <div class="runtime-scroll">
             <div id="runtime-card" class="form-card" style="display:none;"></div>
-            <div id="runtime-table"></div>
-            <div id="children-section" class="thread" style="display:none;">
+            <div id="runtime-table" data-tour="runtime-table"></div>
+            <div id="children-section" class="thread" style="display:none;" data-tour="children-section">
                 <div class="thread-label">Formularios relacionados</div>
                 <div id="children-list" class="thread-list"></div>
             </div>
@@ -1194,7 +1187,7 @@
             </button>
         </div>
 
-        <div class="record-actions-row">
+        <div class="record-actions-row" data-tour="record-actions">
             <button id="save-btn" onclick="saveCurrentRecordExplicit()" class="btn btn-gold">
                 <svg class="ic" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
                 Guardar
@@ -1298,7 +1291,9 @@
     let renderedRecordId = null;
 
     let currentTourStep = 0;
-    const tourSteps = [
+    let activeTourType = 'launcher'; // 'launcher' o 'runtime'
+
+    const launcherTourSteps = [
         {
             title: "👋 ¡Bienvenido a DataForge!",
             text: "Este tour interactivo te mostrará rápidamente cómo aprovechar todas las funciones de la aplicación para gestionar tus datos y hojas Excel.",
@@ -1321,8 +1316,31 @@
         }
     ];
 
-    function startTour() {
-        showLauncher();
+    const runtimeTourSteps = [
+        {
+            title: "📊 Vista general de tu base",
+            text: "Aquí puedes ver todos tus registros en formato de tabla o cambiar a formato de tarjeta individual según te acomode.",
+            target: "view-toggle"
+        },
+        {
+            title: "📑 Navegación de registros",
+            text: "Este indicador te muestra en qué registro te encuentras actualmente respecto al total disponible.",
+            target: "record-indicator"
+        },
+        {
+            title: "🗂️ Relaciones Padre-Hijo",
+            text: "Si tu Excel tiene dependencias (como Compras asociadas a una Obra), aparecerán aquí conectadas automáticamente.",
+            target: "children-section"
+        },
+        {
+            title: "💾 Acciones de control",
+            text: "Usa estos botones para guardar cambios en el servidor/webhook, limpiar datos, crear nuevos registros o eliminarlos con total seguridad.",
+            target: "record-actions"
+        }
+    ];
+
+    function startTour(type = 'launcher') {
+        activeTourType = type;
         currentTourStep = 0;
         document.getElementById('tour-overlay').classList.add('show');
         document.getElementById('tour-bubble').classList.add('show');
@@ -1337,8 +1355,9 @@
     }
 
     function nextTourStep() {
+        const steps = activeTourType === 'runtime' ? runtimeTourSteps : launcherTourSteps;
         currentTourStep++;
-        if (currentTourStep >= tourSteps.length) {
+        if (currentTourStep >= steps.length) {
             endTour();
             showToast("¡Tour completado con éxito!");
             return;
@@ -1380,14 +1399,18 @@
         const previousHighlight = document.querySelector('.tour-target-highlight');
         if (previousHighlight) previousHighlight.classList.remove('tour-target-highlight');
 
-        const step = tourSteps[currentTourStep];
+        const steps = activeTourType === 'runtime' ? runtimeTourSteps : launcherTourSteps;
+        const step = steps[currentTourStep];
         document.getElementById('tour-title').textContent = step.title;
         document.getElementById('tour-text').textContent = step.text;
-        document.getElementById('tour-step-indicator').textContent = `Paso ${currentTourStep + 1} de ${tourSteps.length}`;
+        document.getElementById('tour-step-indicator').textContent = `Paso ${currentTourStep + 1} de ${steps.length}`;
 
         if (!step.target) { centerTourBubble(); return; }
 
-        const el = document.getElementById(step.target);
+        let el = document.getElementById(step.target);
+        if (!el) {
+            el = document.querySelector(`[data-tour="${step.target}"]`);
+        }
         if (!el) { centerTourBubble(); return; }
 
         el.classList.add('tour-target-highlight');
@@ -1670,6 +1693,13 @@
         recordIdCounter = 500;
         showToast("¡Plantilla cargada con éxito!");
         showLauncher();
+        // Iniciar automáticamente el tour en la pantalla de ejecución al cargar plantilla
+        setTimeout(() => {
+            if (formsRegistry.length > 0) {
+                launchForm(formsRegistry[0].id, { fromLauncher: true });
+                startTour('runtime');
+            }
+        }, 300);
     }
 
     function handleGlobalSearch(query) {
@@ -2207,7 +2237,7 @@
         }
         formObj.data.push({ _id: nextRecordId(), _parentId: parentId });
         activeIndexByForm[formObj.id] = getVisibleRecords(formObj.id).length - 1;
-        resetDescendantIndices(formObj.id);
+        resetDescendantIndices(activeFormId);
         viewMode = 'record';
         renderRuntime();
         showToast("Nuevo registro creado");
@@ -2351,6 +2381,14 @@
                     recordIdCounter = Math.max(...formsRegistry.flatMap(f => f.data.map(r => r._id || 0)), 0) + 1;
                     showLauncher();
                     showToast("Datos y relaciones importados exitosamente");
+                    
+                    // Iniciar automáticamente el tour en la pantalla de ejecución al importar Excel
+                    setTimeout(() => {
+                        if (formsRegistry.length > 0) {
+                            launchForm(formsRegistry[0].id, { fromLauncher: true });
+                            startTour('runtime');
+                        }
+                    }, 300);
                 }
             } catch (err) {
                 console.error(err);
