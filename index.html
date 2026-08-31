@@ -1010,7 +1010,7 @@
         <div class="brand-row">
             <div class="brand">DataForge<small>CONSTRUCTOR DE DATOS</small></div>
             <div class="header-actions">
-                <input type="file" id="import-file-input" accept=".xlsx, .xls" style="display:none;" onchange="importExcelData(event)">
+                <input type="file" id="import-file-input" accept=".xlsx, .xls, .json" style="display:none;" onchange="importExternalData(event)">
 
                 <button onclick="startTour('launcher')" class="btn btn-ghost-gold btn-tiny" data-tip="Iniciar Tour Guiado" style="gap:5px;">
                     <svg class="ic" viewBox="0 0 24 24" style="width:13px;height:13px;"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
@@ -1025,7 +1025,7 @@
                 <button onclick="resetAppCompletely()" class="btn btn-ghost-gold btn-icon-only" aria-label="Reiniciar aplicación" data-tip="Reiniciar aplicación">
                     <svg class="ic" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
                 </button>
-                <button id="btn-import-excel" onclick="document.getElementById('import-file-input').click()" class="btn btn-ghost-gold btn-icon-only" aria-label="Cargar desde Excel" data-tip="Cargar Excel">
+                <button id="btn-import-excel" onclick="document.getElementById('import-file-input').click()" class="btn btn-ghost-gold btn-icon-only" aria-label="Cargar desde Excel o JSON" data-tip="Cargar archivo">
                     <svg class="ic" viewBox="0 0 24 24"><path d="M12 21v-11"/><path d="M7.5 13.5 12 9l4.5 4.5"/><path d="M5 3h14"/></svg>
                 </button>
                 <button id="export-btn" onclick="exportAllData()" class="btn btn-ghost-gold btn-icon-only" aria-label="Exportar a Excel" data-tip="Exportar a Excel" style="display:none;">
@@ -1062,7 +1062,7 @@
         <div id="global-search-results" class="global-search-results" style="display:none;"></div>
 
         <div id="launcher-empty" class="empty-state" style="display:none;">
-            <div class="ring" onclick="document.getElementById('import-file-input').click()" data-tip="Haz clic para importar tu Excel o base de datos">
+            <div class="ring" onclick="document.getElementById('import-file-input').click()" data-tip="Haz clic para importar tu Excel o archivo JSON">
                 <svg class="ic" viewBox="0 0 24 24" style="width:24px;height:24px;"><path d="M12 5v14M5 12h14"/></svg>
             </div>
             <div class="empty-desc-header">
@@ -1231,6 +1231,10 @@
             <button id="back-parent-btn" onclick="goBackToParent()" class="btn btn-ghost-gold">
                 <svg class="ic" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
                 Volver
+            </button>
+            <button onclick="shareCurrentForm()" class="btn btn-ghost-gold" data-tip="Compartir estructura y datos del formulario">
+                <svg class="ic" viewBox="0 0 24 24" style="width:13px;height:13px;"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+                Compartir
             </button>
             <button onclick="showLauncher()" class="btn">
                 <svg class="ic" viewBox="0 0 24 24" style="width:13px;height:13px;"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
@@ -1790,6 +1794,25 @@
         }, 300);
     }
 
+    function shareCurrentForm() {
+        if (!activeFormId) return;
+        const formObj = getForm(activeFormId);
+        if (!formObj) return;
+
+        // Incluir también formularios hijos si los hay
+        const children = getChildForms(activeFormId);
+        const formsToShare = [formObj, ...children];
+
+        const jsonStr = JSON.stringify(formsToShare, null, 2);
+        const blob = new Blob([jsonStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `DataForge_Form_${formObj.title.replace(/\s+/g, '_')}.json`;
+        link.click();
+        showToast("Formulario listo para compartir");
+    }
+
     function handleGlobalSearch(query) {
         const resultsContainer = document.getElementById('global-search-results');
         const launcherList = document.getElementById('launcher-list');
@@ -1871,7 +1894,9 @@
             card.innerHTML = `
                 <span class="depth-dot" style="background:${depthColor(depth)};"></span>
                 <div class="app-info"><span class="app-title">${form.title}</span><span class="app-meta">${metaText}</span></div>
-                <svg class="ic" viewBox="0 0 24 24" style="width:16px;height:16px;color:var(--gold);"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                <div style="display:flex; gap:6px;" onclick="event.stopPropagation()">
+                    <button class="btn btn-ghost-gold btn-tiny" onclick="shareFormById(${form.id})" data-tip="Compartir formulario">Compartir</button>
+                </div>
             `;
             card.onclick = () => {
                 saveCurrentRuntimeData();
@@ -1890,6 +1915,22 @@
             };
             listContainer.appendChild(card);
         });
+    }
+
+    function shareFormById(formId) {
+        const formObj = getForm(formId);
+        if (!formObj) return;
+        const children = getChildForms(formId);
+        const formsToShare = [formObj, ...children];
+
+        const jsonStr = JSON.stringify(formsToShare, null, 2);
+        const blob = new Blob([jsonStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `DataForge_Form_${formObj.title.replace(/\s+/g, '_')}.json`;
+        link.click();
+        showToast("Formulario listo para compartir");
     }
 
     function startNewForm() {
@@ -2005,7 +2046,7 @@
 
         if (hasData) {
             const proceed = await showConfirmDialog(
-                `Cambiar esta relación borrará los ${countFilledRecords(formObj, formObj.data)} registro(s) ya cargados en "${formObj.title || 'este formulario'}", porque no tienen un registro padre real asignado. Después de guardar, podrás volver a cargarlos entrando desde el registro padre correspondiente. ¿Continuar?`
+                `Cambiar esta relación borrará los ${countFilledRecords(formObj, formObj.data)} registro(s) ya cargados en "${formObj.title || 'este formulario'}". ¿Continuar?`
             );
             if (!proceed) {
                 pivotSelect.value = formObj.pivotFormId ? `${formObj.pivotFormId}::${formObj.pivotField}` : '';
@@ -2026,7 +2067,7 @@
         activeIndexByForm[formObj.id] = 0;
         resetDescendantIndices(formObj.id);
 
-        if (hasData) showToast('Relación actualizada — los registros se reiniciaron');
+        if (hasData) showToast('Relación actualizada');
     }
 
     function saveBuilderState() {
@@ -2254,7 +2295,6 @@
     function undoCurrentRecordChanges() {
         if (!activeFormId) return;
 
-        // 1. Restaurar último registro eliminado si lo hay en este formulario
         const lastDeletedIndex = deletedRecordsStack.map(d => d.formId).lastIndexOf(activeFormId);
         if (lastDeletedIndex !== -1) {
             const deletedInfo = deletedRecordsStack.splice(lastDeletedIndex, 1)[0];
@@ -2271,18 +2311,15 @@
             }
         }
 
-        // 2. Si estamos en modo formulario/tarjeta, deshecha cambios no guardados
         if (viewMode === 'record' && renderedRecordId !== null) {
             const currentRecord = findRecordById(activeFormId, renderedRecordId);
             if (!currentRecord) return;
 
-            // Si hay un snapshot guardado, restaurarlo
             if (recordSnapshot) {
                 Object.keys(recordSnapshot).forEach(k => {
                     currentRecord[k] = recordSnapshot[k];
                 });
             } else {
-                // Si no hay snapshot, limpiar o vaciar campos
                 const formObj = getForm(activeFormId);
                 if (formObj) {
                     formObj.fields.forEach(f => {
@@ -2291,7 +2328,6 @@
                 }
             }
 
-            // Actualizar visualmente los inputs en pantalla inmediatamente
             document.querySelectorAll('#runtime-card .r-input').forEach(input => {
                 const name = input.dataset.name;
                 const val = currentRecord[name];
@@ -2493,12 +2529,23 @@
         showToast("Exportado a JSON correctamente");
     }
 
-    function importExcelData(event) {
+    function importExternalData(event) {
         const file = event.target.files[0];
         if (!file) return;
         const reader = new FileReader();
         reader.onload = function(e) {
             try {
+                if (file.name.endsWith('.json')) {
+                    const parsed = JSON.parse(new TextDecoder().decode(e.target.result));
+                    if (Array.isArray(parsed)) {
+                        formsRegistry = parsed;
+                        recordIdCounter = Math.max(...formsRegistry.flatMap(f => f.data.map(r => r._id || 0)), 0) + 1;
+                        showLauncher();
+                        showToast("Formulario importado exitosamente");
+                        return;
+                    }
+                }
+
                 const workbook = XLSX.read(new Uint8Array(e.target.result), { type: 'array', cellDates: true });
                 let tempForms = [], nextId = 1;
                 
@@ -2558,16 +2605,13 @@
                 });
 
                 let obrasForm = tempForms.find(f => f.title.toLowerCase() === 'obras');
-                
                 if (obrasForm) {
                     tempForms.forEach(form => {
                         if (form.id === obrasForm.id) return;
-                        
                         const obraField = form.fields.find(f => f.name.toLowerCase() === 'obra');
                         if (obraField) {
                             form.pivotFormId = obrasForm.id;
                             form.pivotField = obraField.name;
-
                             form.data.forEach(record => {
                                 const valObra = String(record[obraField.name] || '').trim().toLowerCase();
                                 const matchedParent = obrasForm.data.find(parentRec => {
@@ -2575,10 +2619,7 @@
                                     const parentVal = String(parentRec[parentFieldKey] || '').trim().toLowerCase();
                                     return parentVal === valObra;
                                 });
-
-                                if (matchedParent) {
-                                    record._parentId = matchedParent._id;
-                                }
+                                if (matchedParent) record._parentId = matchedParent._id;
                             });
                         }
                     });
@@ -2590,17 +2631,10 @@
                     deletedRecordsStack = [];
                     showLauncher();
                     showToast("Datos y relaciones importados exitosamente");
-                    
-                    setTimeout(() => {
-                        if (formsRegistry.length > 0) {
-                            launchForm(formsRegistry[0].id, { fromLauncher: true });
-                            startTour('runtime');
-                        }
-                    }, 300);
                 }
             } catch (err) {
                 console.error(err);
-                alert('Error al leer el archivo Excel.');
+                alert('Error al leer el archivo.');
             } finally {
                 event.target.value = '';
             }
