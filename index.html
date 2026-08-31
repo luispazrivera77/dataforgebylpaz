@@ -1262,22 +1262,19 @@
 <div id="share-modal" class="modal-overlay hidden">
     <div class="modal-content" style="max-width: 420px;">
         <div class="brand-row" style="margin-bottom: 0; padding-bottom: 12px;">
-            <div class="brand" style="font-size: 18px;">Compartir Formulario<small>ENVIAR FUERA DE LA APP</small></div>
+            <div class="brand" style="font-size: 18px;">Compartir Formulario<small>DESCARGA Y ENVÍO RÁPIDO</small></div>
             <button onclick="closeShareModal()" class="btn btn-tiny btn-ghost-gold">Cerrar</button>
         </div>
-        <div class="modal-body" style="display: flex; flex-direction: column; gap: 10px;">
-            <p style="margin:0 0 8px 0; font-size:13px;">Elige cómo deseas compartir este formulario:</p>
+        <div class="modal-body" style="display: flex; flex-direction: column; gap: 12px;">
+            <p style="margin:0; font-size:13px; line-height: 1.5;">Al hacer clic en WhatsApp o Telegram, <strong>el archivo JSON se descargará automáticamente en tu teléfono</strong>. Luego solo adjúntalo con el botón de clip 📎 en el chat.</p>
             <button onclick="shareViaWhatsApp()" class="btn" style="background: #25d366; color: #fff; border:none; justify-content: flex-start; gap: 12px;">
-                💬 Compartir por WhatsApp
+                💬 Abrir WhatsApp (y descargar archivo)
             </button>
             <button onclick="shareViaTelegram()" class="btn" style="background: #0088cc; color: #fff; border:none; justify-content: flex-start; gap: 12px;">
-                ✈️ Compartir por Telegram
-            </button>
-            <button onclick="shareViaEmail()" class="btn" style="background: var(--surface-2); border-color: var(--border-gold); justify-content: flex-start; gap: 12px;">
-                ✉️ Enviar por Correo Electrónico
+                ✈️ Abrir Telegram (y descargar archivo)
             </button>
             <button onclick="downloadFormJSONFile()" class="btn btn-gold" style="justify-content: flex-start; gap: 12px;">
-                📥 Descargar archivo JSON (para adjuntar manual)
+                📥 Solo descargar archivo JSON
             </button>
         </div>
     </div>
@@ -1845,32 +1842,11 @@
         }, 300);
     }
 
-    async function shareCurrentForm() {
+    function shareCurrentForm() {
         if (!activeFormId) return;
         const formObj = getForm(activeFormId);
         if (!formObj) return;
-
-        const children = getChildForms(activeFormId);
-        const formsToShare = [formObj, ...children];
-        const jsonStr = JSON.stringify(formsToShare, null, 2);
-        const filename = `DataForge_${formObj.title.replace(/\s+/g, '_')}.json`;
-        const file = new File([jsonStr], filename, { type: 'application/json' });
-
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-            try {
-                await navigator.share({
-                    title: `Formulario DataForge: ${formObj.title}`,
-                    text: `Aquí tienes el formulario "${formObj.title}" con sus datos para importar en DataForge.`,
-                    files: [file]
-                });
-                showToast("Formulario compartido correctamente");
-                return;
-            } catch (err) {
-                if (err.name !== 'AbortError') console.log('Share native error:', err);
-            }
-        }
-
-        // CORRECCIÓN: Si no soporta compartir archivos nativos directamente, abrimos el modal de opciones para descargar o enviar por web
+        // Abre directamente el modal garantizando la descarga del archivo JSON y el enlace a WhatsApp
         document.getElementById('share-modal').classList.remove('hidden');
     }
 
@@ -1896,28 +1872,24 @@
         link.download = filename;
         link.click();
         closeShareModal();
-        showToast("Archivo JSON descargado");
+        showToast("Archivo JSON descargado en tu dispositivo");
     }
 
     function shareViaWhatsApp() {
-        const { formTitle } = getShareBlobAndData();
         downloadFormJSONFile();
-        const text = encodeURIComponent(`Hola, te comparto el formulario "${formTitle}" para DataForge. Adjunto el archivo JSON descargado en tu dispositivo para importarlo.`);
-        window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
+        window.open(`https://api.whatsapp.com/send?text=` + encodeURIComponent(`Hola, te comparto el formulario de DataForge. Acabo de descargar el archivo JSON, adjúntalo aquí con el clip 📎`), '_blank');
     }
 
     function shareViaTelegram() {
-        const { formTitle } = getShareBlobAndData();
         downloadFormJSONFile();
-        const text = encodeURIComponent(`Hola, te comparto el formulario "${formTitle}" para DataForge.`);
-        window.open(`https://t.me/share/url?url=&text=${text}`, '_blank');
+        window.open(`https://t.me/share/url?url=&text=` + encodeURIComponent(`Hola, te comparto el formulario de DataForge. Archivo JSON descargado para adjuntar.`), '_blank');
     }
 
     function shareViaEmail() {
         const { formTitle } = getShareBlobAndData();
         downloadFormJSONFile();
         const subject = encodeURIComponent(`Formulario DataForge: ${formTitle}`);
-        const body = encodeURIComponent(`Hola,\n\nTe comparto adjunto el archivo del formulario "${formTitle}" para trabajar en DataForge.\n\nSaludos.`);
+        const body = encodeURIComponent(`Hola,\n\nTe comparto el archivo del formulario "${formTitle}" para trabajar en DataForge.\n\nSaludos.`);
         window.open(`mailto:?subject=${subject}&body=${body}`, '_blank');
     }
 
