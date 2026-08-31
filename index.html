@@ -1059,8 +1059,12 @@
                     <svg class="ic" viewBox="0 0 24 24"><path d="M18 15l-6-6-6 6"/></svg>
                 </button>
             </div>
-            <p class="empty-desc" id="empty-desc">Importa tu excel o base de datos y trabaja fácil... o crea tu primer formulario desde cero... o elige una de nuestras 5 plantillas prediseñadas que además podrá exportar para revisar y aprender.</p>
+            <p class="empty-desc" id="empty-desc">Importa tu excel o base de datos y trabaja fácil... o crea tu primer formulario desde cero... o elige una de nuestras plantillas prediseñadas.</p>
             <div class="templates-grid">
+                <div class="template-card" onclick="loadTemplate('supermercado')">
+                    <span>🛒 Lista Supermercado</span>
+                    <small>Control de compras (Sí/No)</small>
+                </div>
                 <div class="template-card" onclick="loadTemplate('obras')">
                     <span>🏗️ Obras y Compras</span>
                     <small>Relación Padre-Hijo</small>
@@ -1302,7 +1306,7 @@
         },
         {
             title: "📥 Cargar archivo Excel",
-            text: "Aquí puedes importar tus bases de datos completas en formato .xlsx o .xls. El sistema detectará automáticamente relaciones y fechas.",
+            text: "Aquí puedes importar tus bases de datos completas en formato .xlsx o .xls. Las columnas tipo Sí/No se detectan automáticamente como casillas de verificación (tickets).",
             target: "btn-import-excel"
         },
         {
@@ -1358,7 +1362,7 @@
         },
         {
             title: "📋 Campos de datos y orden",
-            text: "Define los nombres, tipos y orden de tus campos. Usa las flechas (↑ ↓) en cada campo para ordenarlos como prefieras.",
+            text: "Define los nombres, tipos (texto, número, fecha, sí/no) y orden de tus campos. Usa las flechas (↑ ↓) para ordenarlos.",
             target: "builder-fields-section"
         },
         {
@@ -1623,7 +1627,24 @@
     }
 
     function loadTemplate(type) {
-        if (type === 'obras') {
+        if (type === 'supermercado') {
+            formsRegistry = [{
+                id: 1, title: "Lista Supermercado", webhook: "", pivotFormId: null, pivotField: "",
+                fields: [
+                    { name: "Producto", type: "text", required: true },
+                    { name: "Cantidad", type: "text", required: true },
+                    { name: "Comprado", type: "checkbox", required: false },
+                    { name: "Categoría", type: "text", required: false }
+                ],
+                data: [
+                    { _id: nextRecordId(), _parentId: null, "Producto": "Plátano", "Cantidad": "1 kg", "Comprado": false, "Categoría": "Frutas y Verduras" },
+                    { _id: nextRecordId(), _parentId: null, "Producto": "Manzana", "Cantidad": "1 kg", "Comprado": false, "Categoría": "Frutas y Verduras" },
+                    { _id: nextRecordId(), _parentId: null, "Producto": "Naranja", "Cantidad": "1 kg", "Comprado": false, "Categoría": "Frutas y Verduras" },
+                    { _id: nextRecordId(), _parentId: null, "Producto": "Palta", "Cantidad": "3 unid.", "Comprado": false, "Categoría": "Frutas y Verduras" },
+                    { _id: nextRecordId(), _parentId: null, "Producto": "Limón", "Cantidad": "1 kg", "Comprado": false, "Categoría": "Frutas y Verduras" }
+                ]
+            }];
+        } else if (type === 'obras') {
             formsRegistry = [
                 {
                     id: 1, title: "Obras", webhook: "", pivotFormId: null, pivotField: "",
@@ -1899,7 +1920,7 @@
                         <option value="number" ${field.type==='number'?'selected':''}>Número</option>
                         <option value="date" ${field.type==='date'?'selected':''}>Fecha</option>
                         <option value="email" ${field.type==='email'?'selected':''}>Email</option>
-                        <option value="checkbox" ${field.type==='checkbox'?'selected':''}>Sí/No</option>
+                        <option value="checkbox" ${field.type==='checkbox'?'selected':''}>Sí/No (Ticket)</option>
                     </select>
                 </div>
                 <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
@@ -2133,7 +2154,7 @@
             html += `<tr class="table-row ${i === activeIdx ? 'table-row-active' : ''}" data-idx="${i}">`;
             cols.forEach(f => {
                 let val = rec[f.name];
-                if (f.type === 'checkbox') val = val ? '✓' : '—';
+                if (f.type === 'checkbox') val = val ? '✓ Sí' : '✗ No';
                 else if (val === undefined || val === '') val = '—';
                 html += `<td>${val}</td>`;
             });
@@ -2383,6 +2404,17 @@
                     let header = rows[0].map(h => String(h || '').trim()).filter(Boolean);
                     if (header.length === 0) return;
 
+                    // Detectar si alguna columna contiene valores Sí/No para mapearla automáticamente como checkbox (ticket)
+                    let sampleRows = rows.slice(1, 10);
+                    let checkboxCols = new Set();
+                    header.forEach((h, colIdx) => {
+                        let isYesNo = sampleRows.some(r => {
+                            let val = String(r[colIdx] || '').trim().toLowerCase();
+                            return val === 'si' || val === 'no' || val === 'sí' || val === 'true' || val === 'false';
+                        });
+                        if (isYesNo) checkboxCols.add(h);
+                    });
+
                     const formId = nextId++;
                     tempForms.push({
                         id: formId, 
@@ -2390,12 +2422,21 @@
                         webhook: "", 
                         pivotFormId: null, 
                         pivotField: "",
-                        fields: header.map(name => ({ name, type: 'text', required: false })),
+                        fields: header.map(name => ({ 
+                            name, 
+                            type: checkboxCols.has(name) ? 'checkbox' : 'text', 
+                            required: false 
+                        })),
                         data: rows.slice(1).map(r => {
                             let rec = { _id: nextRecordId(), _parentId: null };
                             header.forEach((h, i) => {
                                 let val = r[i] !== undefined ? r[i] : '';
-                                rec[h] = formatCellDate(val);
+                                if (checkboxCols.has(h)) {
+                                    let sVal = String(val).trim().toLowerCase();
+                                    rec[h] = (sVal === 'si' || sVal === 'sí' || sVal === 'true' || sVal === '1' || sVal === 'yes');
+                                } else {
+                                    rec[h] = formatCellDate(val);
+                                }
                             });
                             return rec;
                         }).filter(r => recordHasData({ fields: header.map(name => ({name})) }, r))
