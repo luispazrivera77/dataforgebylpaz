@@ -1075,7 +1075,7 @@
             <div class="templates-grid">
                 <div class="template-card" onclick="loadTemplate('supermercado')">
                     <span>🛒 Lista Supermercado</span>
-                    <small>Control de compras (Sí/No)</small>
+                    <small>Control de compras (67 ítems)</small>
                 </div>
                 <div class="template-card" onclick="loadTemplate('obras')">
                     <span>🏗️ Obras y Compras</span>
@@ -1311,7 +1311,7 @@
     let viewMode = 'table';
     let renderedRecordId = null;
     let recordSnapshot = null;
-    let deletedRecordsStack = []; // Pila de registros eliminados para poder deshacer
+    let deletedRecordsStack = [];
 
     let currentTourStep = 0;
     let activeTourType = 'launcher';
@@ -1648,6 +1648,24 @@
 
     function loadTemplate(type) {
         if (type === 'supermercado') {
+            const prodNames = [
+                "Plátano", "Manzana", "Naranja", "Palta", "Limón", "Tomate", "Lechuga", "Cebolla", "Papa", "Zanahoria",
+                "Zapallo", "Pimentón", "Ajo", "Perejil", "Cilantro", "Espinaca", "Brócoli", "Pera", "Durazno", "Sandía",
+                "Melón", "Frutilla", "Uva", "Arándano", "Kiwi", "Piña", "Leche", "Queso", "Mantequilla", "Yogurt",
+                "Crema", "Manjar", "Huevos", "Pan", "Arroz", "Fideos", "Avena", "Harina", "Azúcar", "Sal",
+                "Aceite", "Atún", "Salsa de tomate", "Lentejas", "Porotos", "Garbanzos", "Té", "Café", "Mate", "Cacao",
+                "Galletas", "Chocolate", "Mermelada", "Jamón", "Pechuga de pavo", "Salchichas", "Carne molida", "Punta gansos", "Pollo entero", "Filete de merluza",
+                "Detergente", "Suavizante", "Lavalozas", "Cloro", "Esponja", "Papel higiénico", "Toalla nova"
+            ];
+            const supermarketData = prodNames.map((p, idx) => ({
+                _id: nextRecordId(),
+                _parentId: null,
+                "Producto": p,
+                "Cantidad": idx < 26 ? "1 kg" : (idx < 33 ? "1 unid." : "2 unids."),
+                "Comprado": false,
+                "Categoría": idx < 26 ? "Frutas y Verduras" : (idx < 34 ? "Lácteos y Pan" : (idx < 47 ? "Despensa" : (idx < 60 ? "Carnes y Pescados" : "Aseo y Hogar")))
+            }));
+
             formsRegistry = [{
                 id: 1, title: "Lista Supermercado", webhook: "", pivotFormId: null, pivotField: "",
                 fields: [
@@ -1656,13 +1674,7 @@
                     { name: "Comprado", type: "checkbox", required: false },
                     { name: "Categoría", type: "text", required: false }
                 ],
-                data: [
-                    { _id: nextRecordId(), _parentId: null, "Producto": "Plátano", "Cantidad": "1 kg", "Comprado": false, "Categoría": "Frutas y Verduras" },
-                    { _id: nextRecordId(), _parentId: null, "Producto": "Manzana", "Cantidad": "1 kg", "Comprado": false, "Categoría": "Frutas y Verduras" },
-                    { _id: nextRecordId(), _parentId: null, "Producto": "Naranja", "Cantidad": "1 kg", "Comprado": false, "Categoría": "Frutas y Verduras" },
-                    { _id: nextRecordId(), _parentId: null, "Producto": "Palta", "Cantidad": "3 unid.", "Comprado": false, "Categoría": "Frutas y Verduras" },
-                    { _id: nextRecordId(), _parentId: null, "Producto": "Limón", "Cantidad": "1 kg", "Comprado": false, "Categoría": "Frutas y Verduras" }
-                ]
+                data: supermarketData
             }];
         } else if (type === 'obras') {
             formsRegistry = [
@@ -2242,14 +2254,13 @@
     function undoCurrentRecordChanges() {
         if (!activeFormId) return;
 
-        // Si hay un registro recientemente eliminado para este formulario, lo restauramos
+        // 1. Restaurar último registro eliminado si lo hay en este formulario
         const lastDeletedIndex = deletedRecordsStack.map(d => d.formId).lastIndexOf(activeFormId);
         if (lastDeletedIndex !== -1) {
             const deletedInfo = deletedRecordsStack.splice(lastDeletedIndex, 1)[0];
             const formObj = getForm(activeFormId);
             if (formObj) {
                 formObj.data.push(deletedInfo.record);
-                // Restaurar también sus hijos si los había
                 deletedInfo.children.forEach(childRec => {
                     const childForm = getForm(childRec.formId);
                     if (childForm) childForm.data.push(childRec.record);
@@ -2260,26 +2271,42 @@
             }
         }
 
-        // Si no hay eliminaciones pendientes, deshacemos cambios en el registro actual
-        if (renderedRecordId === null || !recordSnapshot) return;
-        const currentRecord = findRecordById(activeFormId, renderedRecordId);
-        if (!currentRecord) return;
+        // 2. Si estamos en modo formulario/tarjeta, deshecha cambios no guardados
+        if (viewMode === 'record' && renderedRecordId !== null) {
+            const currentRecord = findRecordById(activeFormId, renderedRecordId);
+            if (!currentRecord) return;
 
-        Object.keys(recordSnapshot).forEach(k => {
-            currentRecord[k] = recordSnapshot[k];
-        });
-
-        document.querySelectorAll('#runtime-card .r-input').forEach(input => {
-            const name = input.dataset.name;
-            const val = currentRecord[name];
-            if (input.type === 'checkbox') {
-                input.checked = !!val;
+            // Si hay un snapshot guardado, restaurarlo
+            if (recordSnapshot) {
+                Object.keys(recordSnapshot).forEach(k => {
+                    currentRecord[k] = recordSnapshot[k];
+                });
             } else {
-                input.value = val !== undefined ? val : '';
+                // Si no hay snapshot, limpiar o vaciar campos
+                const formObj = getForm(activeFormId);
+                if (formObj) {
+                    formObj.fields.forEach(f => {
+                        currentRecord[f.name] = f.type === 'checkbox' ? false : '';
+                    });
+                }
             }
-        });
 
-        showToast("Cambios deshechos");
+            // Actualizar visualmente los inputs en pantalla inmediatamente
+            document.querySelectorAll('#runtime-card .r-input').forEach(input => {
+                const name = input.dataset.name;
+                const val = currentRecord[name];
+                if (input.type === 'checkbox') {
+                    input.checked = !!val;
+                } else {
+                    input.value = val !== undefined ? val : '';
+                }
+            });
+
+            showToast("Cambios deshechos");
+            return;
+        }
+
+        showToast("No hay cambios pendientes para deshacer");
     }
 
     function saveCurrentRecordExplicit() {
@@ -2360,7 +2387,6 @@
         const ok = await showConfirmDialog('¿Eliminar este registro?');
         if (!ok) return;
 
-        // Respaldar en la pila de eliminados para poder recuperarlo con Deshacer
         let childrenBackup = [];
         collectDescendantRecords(activeFormId, currentRecord._id, childrenBackup);
         deletedRecordsStack.push({
