@@ -756,17 +756,6 @@
         -webkit-overflow-scrolling: touch;
     }
 
-    @keyframes headerPulse {
-        0%, 100% {
-            filter: brightness(1);
-            text-shadow: 0 0 0px rgba(217, 166, 83, 0);
-        }
-        50% {
-            filter: brightness(1.35);
-            text-shadow: 0 0 10px var(--gold);
-        }
-    }
-
     table.records-table {
         border-collapse: collapse;
         width: 100%;
@@ -780,7 +769,7 @@
         letter-spacing: 0.05em;
         color: var(--gold);
         text-align: left;
-        padding: 11px 12px;
+        padding: 13px 14px;
         background: var(--surface-2);
         white-space: nowrap;
         position: sticky;
@@ -788,10 +777,11 @@
         border-bottom: 1px solid var(--border-gold);
         cursor: pointer;
         user-select: none;
+        -webkit-tap-highlight-color: transparent;
         transition: background 0.15s;
     }
 
-    table.records-table th:hover {
+    table.records-table th:hover, table.records-table th:active {
         background: var(--surface-hover);
         color: var(--gold-hover);
     }
@@ -1239,7 +1229,7 @@
                 <svg class="ic" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
                 Volver
             </button>
-            <button onclick="shareCurrentForm()" class="btn btn-ghost-gold" data-tip="Compartir estructura y datos del formulario">
+            <button onclick="shareCurrentForm()" class="btn btn-ghost-gold" data-tip="Compartir estructura y datos por WhatsApp, Telegram o Correo">
                 <svg class="ic" viewBox="0 0 24 24" style="width:13px;height:13px;"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
                 Compartir
             </button>
@@ -1265,6 +1255,30 @@
         <div style="display:flex; gap:6px; flex-wrap:wrap;">
             <button onclick="endTour()" class="btn btn-tiny btn-danger-outline" style="padding: 5px 8px;">Terminar tour</button>
             <button onclick="nextTourStep()" class="btn btn-tiny btn-gold" style="padding: 5px 12px;">Siguiente →</button>
+        </div>
+    </div>
+</div>
+
+<div id="share-modal" class="modal-overlay hidden">
+    <div class="modal-content" style="max-width: 420px;">
+        <div class="brand-row" style="margin-bottom: 0; padding-bottom: 12px;">
+            <div class="brand" style="font-size: 18px;">Compartir Formulario<small>ENVIAR FUERA DE LA APP</small></div>
+            <button onclick="closeShareModal()" class="btn btn-tiny btn-ghost-gold">Cerrar</button>
+        </div>
+        <div class="modal-body" style="display: flex; flex-direction: column; gap: 10px;">
+            <p style="margin:0 0 8px 0; font-size:13px;">Elige cómo deseas compartir este formulario:</p>
+            <button onclick="shareViaWhatsApp()" class="btn" style="background: #25d366; color: #fff; border:none; justify-content: flex-start; gap: 12px;">
+                💬 Compartir por WhatsApp
+            </button>
+            <button onclick="shareViaTelegram()" class="btn" style="background: #0088cc; color: #fff; border:none; justify-content: flex-start; gap: 12px;">
+                ✈️ Compartir por Telegram
+            </button>
+            <button onclick="shareViaEmail()" class="btn" style="background: var(--surface-2); border-color: var(--border-gold); justify-content: flex-start; gap: 12px;">
+                ✉️ Enviar por Correo Electrónico
+            </button>
+            <button onclick="downloadFormJSONFile()" class="btn btn-gold" style="justify-content: flex-start; gap: 12px;">
+                📥 Descargar archivo JSON (para adjuntar manual)
+            </button>
         </div>
     </div>
 </div>
@@ -1324,7 +1338,6 @@
     let recordSnapshot = null;
     let deletedRecordsStack = [];
 
-    // Variables de ordenamiento de columnas
     let currentSortColumn = null;
     let currentSortDirection = 'asc';
 
@@ -1602,27 +1615,21 @@
             list = form.data.filter(r => r._parentId === parentRecord._id);
         }
 
-        // Aplicar ordenamiento si está activo
         if (currentSortColumn) {
             list.sort((a, b) => {
                 let valA = a[currentSortColumn];
                 let valB = b[currentSortColumn];
-                if (valA === undefined) valA = '';
-                if (valB === undefined) valB = '';
+                if (valA === undefined || valA === null) valA = '';
+                if (valB === undefined || valB === null) valB = '';
 
-                // Intento numérico
                 let numA = parseFloat(valA);
                 let numB = parseFloat(valB);
-                if (!isNaN(numA) && !isNaN(numB)) {
+                if (!isNaN(numA) && !isNaN(numB) && String(valA).trim() !== '' && String(valB).trim() !== '') {
                     return currentSortDirection === 'asc' ? numA - numB : numB - numA;
                 }
 
-                // Alfabético
-                let strA = String(valA).toLowerCase();
-                let strB = String(valB).toLowerCase();
-                if (strA < strB) return currentSortDirection === 'asc' ? -1 : 1;
-                if (strA > strB) return currentSortDirection === 'asc' ? 1 : -1;
-                return 0;
+                let cmp = String(valA).localeCompare(String(valB), 'es', { sensitivity: 'accent', numeric: true });
+                return currentSortDirection === 'asc' ? cmp : -cmp;
             });
         }
 
@@ -1838,22 +1845,79 @@
         }, 300);
     }
 
-    function shareCurrentForm() {
+    async function shareCurrentForm() {
         if (!activeFormId) return;
         const formObj = getForm(activeFormId);
         if (!formObj) return;
 
         const children = getChildForms(activeFormId);
         const formsToShare = [formObj, ...children];
+        const jsonStr = JSON.stringify(formsToShare, null, 2);
+        const filename = `DataForge_${formObj.title.replace(/\s+/g, '_')}.json`;
+        const file = new File([jsonStr], filename, { type: 'application/json' });
 
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            try {
+                await navigator.share({
+                    title: `Formulario DataForge: ${formObj.title}`,
+                    text: `Aquí tienes el formulario "${formObj.title}" con sus datos para importar en DataForge.`,
+                    files: [file]
+                });
+                showToast("Formulario compartido correctamente");
+                return;
+            } catch (err) {
+                if (err.name !== 'AbortError') console.log('Share native error:', err);
+            }
+        }
+
+        document.getElementById('share-modal').classList.remove('hidden');
+    }
+
+    function closeShareModal() {
+        document.getElementById('share-modal').classList.add('hidden');
+    }
+
+    function getShareBlobAndData() {
+        const formObj = getForm(activeFormId);
+        const children = getChildForms(activeFormId);
+        const formsToShare = [formObj, ...children];
         const jsonStr = JSON.stringify(formsToShare, null, 2);
         const blob = new Blob([jsonStr], { type: 'application/json' });
+        const filename = `DataForge_${formObj.title.replace(/\s+/g, '_')}.json`;
+        return { blob, filename, formTitle: formObj.title };
+    }
+
+    function downloadFormJSONFile() {
+        const { blob, filename } = getShareBlobAndData();
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = `DataForge_Form_${formObj.title.replace(/\s+/g, '_')}.json`;
+        link.download = filename;
         link.click();
-        showToast("Formulario listo para compartir");
+        closeShareModal();
+        showToast("Archivo JSON descargado");
+    }
+
+    function shareViaWhatsApp() {
+        const { formTitle } = getShareBlobAndData();
+        downloadFormJSONFile();
+        const text = encodeURIComponent(`Hola, te comparto el formulario "${formTitle}" para DataForge. Descarga el archivo JSON adjunto o importalo en tu aplicación.`);
+        window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
+    }
+
+    function shareViaTelegram() {
+        const { formTitle } = getShareBlobAndData();
+        downloadFormJSONFile();
+        const text = encodeURIComponent(`Hola, te comparto el formulario "${formTitle}" para DataForge.`);
+        window.open(`https://t.me/share/url?url=&text=${text}`, '_blank');
+    }
+
+    function shareViaEmail() {
+        const { formTitle } = getShareBlobAndData();
+        downloadFormJSONFile();
+        const subject = encodeURIComponent(`Formulario DataForge: ${formTitle}`);
+        const body = encodeURIComponent(`Hola,\n\nTe comparto adjunto el archivo del formulario "${formTitle}" para trabajar en DataForge.\n\nSaludos.`);
+        window.open(`mailto:?subject=${subject}&body=${body}`, '_blank');
     }
 
     function handleGlobalSearch(query) {
@@ -1905,7 +1969,7 @@
         saveCurrentRuntimeData();
         navStack = [];
         activeFormId = targetFormId;
-        viewMode = 'record';
+        viewMode = 'table';
         document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
         document.getElementById('screen-runtime').classList.remove('hidden');
         renderRuntime();
@@ -1937,9 +2001,6 @@
             card.innerHTML = `
                 <span class="depth-dot" style="background:${depthColor(depth)};"></span>
                 <div class="app-info"><span class="app-title">${form.title}</span><span class="app-meta">${metaText}</span></div>
-                <div style="display:flex; gap:6px;" onclick="event.stopPropagation()">
-                    <button class="btn btn-ghost-gold btn-tiny" onclick="shareFormById(${form.id})" data-tip="Compartir formulario">Compartir</button>
-                </div>
             `;
             card.onclick = () => {
                 saveCurrentRuntimeData();
@@ -1959,22 +2020,6 @@
             };
             listContainer.appendChild(card);
         });
-    }
-
-    function shareFormById(formId) {
-        const formObj = getForm(formId);
-        if (!formObj) return;
-        const children = getChildForms(formId);
-        const formsToShare = [formObj, ...children];
-
-        const jsonStr = JSON.stringify(formsToShare, null, 2);
-        const blob = new Blob([jsonStr], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `DataForge_Form_${formObj.title.replace(/\s+/g, '_')}.json`;
-        link.click();
-        showToast("Formulario listo para compartir");
     }
 
     function startNewForm() {
@@ -2286,7 +2331,7 @@
             if (currentSortColumn === f.name) {
                 indicator = currentSortDirection === 'asc' ? ' ▲' : ' ▼';
             }
-            html += `<th onclick="sortTableByColumn('${f.name}')" title="Haz clic para ordenar">${f.name}${indicator}</th>`;
+            html += `<th onclick="sortTableByColumn('${f.name}')" title="Toca para ordenar alfabéticamente">${f.name}${indicator}</th>`;
         });
         html += `</tr></thead><tbody>`;
 
