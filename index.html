@@ -124,7 +124,6 @@
         gap: 12px;
     }
 
-    /* Animación de pulso de luz para el título de la aplicación */
     @keyframes textLightPulse {
         0%, 100% {
             text-shadow: 0 0 4px rgba(217, 166, 83, 0.2), 0 0 12px rgba(217, 166, 83, 0.1);
@@ -631,7 +630,6 @@
     .form-header-title { display: flex; align-items: center; gap: 10px; min-width: 0; }
     .form-header-title .depth-dot { width: 9px; height: 9px; flex-shrink: 0; }
     
-    /* Animación de pulso de luz para el nombre del formulario o tabla en la pantalla de ejecución */
     @keyframes runtimeTitleLightPulse {
         0%, 100% {
             text-shadow: 0 0 3px rgba(217, 166, 83, 0.15), 0 0 10px rgba(217, 166, 83, 0.05);
@@ -654,7 +652,30 @@
         animation: runtimeTitleLightPulse 3s ease-in-out infinite;
     }
 
-    #record-indicator { font-family: var(--font-mono); font-size: 11.5px; color: var(--gold); background: var(--gold-soft); padding: 3px 8px; border-radius: 6px; border: 1px solid var(--border-gold); }
+    /* Animación de pulso de luz similar al círculo del signo más para el indicador de registros */
+    @keyframes badgeGlowPulse {
+        0%, 100% {
+            box-shadow: 0 0 4px rgba(217, 166, 83, 0.15), inset 0 0 4px rgba(217, 166, 83, 0.1);
+            border-color: var(--border-gold);
+            filter: drop-shadow(0 0 0px var(--gold));
+        }
+        50% {
+            box-shadow: 0 0 14px rgba(217, 166, 83, 0.5), inset 0 0 8px rgba(217, 166, 83, 0.3);
+            border-color: var(--gold-hover);
+            filter: drop-shadow(0 0 6px var(--gold));
+        }
+    }
+
+    #record-indicator { 
+        font-family: var(--font-mono); 
+        font-size: 11.5px; 
+        color: var(--gold); 
+        background: var(--gold-soft); 
+        padding: 3px 8px; 
+        border-radius: 6px; 
+        border: 1px solid var(--border-gold); 
+        animation: badgeGlowPulse 2.4s ease-in-out infinite;
+    }
 
     .runtime-scroll { flex: 1; overflow-y: auto; min-height: 0; padding-right: 4px; }
 
