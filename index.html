@@ -174,14 +174,12 @@
         align-items: flex-start;
         justify-content: space-between;
         gap: 10px;
-        flex-wrap: nowrap;
     }
 
     .hero-toggle-btn {
         flex-shrink: 0;
+        padding: 5px;
         margin-top: -2px;
-        min-width: 32px;
-        min-height: 32px;
     }
     .hero-toggle-btn svg.ic { width: 15px; height: 15px; }
 
@@ -191,10 +189,6 @@
         font-weight: 600;
         color: var(--text);
         margin: 0;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        min-width: 0;
     }
 
     .hero-desc {
@@ -210,29 +204,6 @@
     .hero-desc.collapsed {
         max-height: 0;
         opacity: 0;
-    }
-
-    .empty-desc-header {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 6px;
-        width: 100%;
-    }
-    .empty-desc-header h3 { margin: 0; }
-    .empty-toggle-btn { flex-shrink: 0; min-width: 32px; min-height: 32px; margin-top: 0; }
-    .empty-toggle-btn svg.ic { width: 15px; height: 15px; }
-
-    .empty-desc {
-        overflow: hidden;
-        max-height: 240px;
-        opacity: 1;
-        transition: max-height 0.25s ease, opacity 0.2s ease, margin 0.25s ease;
-    }
-    .empty-desc.collapsed {
-        max-height: 0;
-        opacity: 0;
-        margin: 0;
     }
 
     h2 {
@@ -430,7 +401,6 @@
     }
 
     .empty-state .ring {
-        position: relative;
         width: 68px;
         height: 68px;
         border-radius: 50%;
@@ -444,81 +414,11 @@
         transition: 0.2s;
     }
 
-    /* Estados de :hover reales (solo dispositivos con mouse). Se
-       aíslan bajo (hover: hover) y (pointer: fine) para que en
-       táctil/celular NUNCA se activen estos estilos ni se queden
-       "pegados" tras un tap — ver nota junto a .ring::before y al
-       svg.ic más abajo, donde antes se apagaba la animación del "+"
-       al tocar y quedaba congelada hasta tocar otra parte de la
-       pantalla. */
-    @media (hover: hover) and (pointer: fine) {
-        .empty-state .ring:hover {
-            background: var(--gold);
-            color: #0a0d14;
-            transform: scale(1.05);
-            box-shadow: 0 0 20px rgba(217, 166, 83, 0.4);
-        }
-    }
-
-    /* Línea brillante que recorre el borde del círculo, para invitar
-       a tocar el botón "+". Es un anillo (conic-gradient) recortado
-       a solo un trazo fino mediante mask, que gira sin parar. Se
-       detiene al pasar el mouse/tocar, para no competir con el
-       feedback de hover. */
-    .empty-state .ring::before {
-        content: "";
-        position: absolute;
-        inset: -4px;
-        border-radius: 50%;
-        padding: 2px;
-        background: conic-gradient(from 0deg,
-            transparent 0deg,
-            transparent 250deg,
-            var(--gold-hover) 300deg,
-            #fff7e6 330deg,
-            var(--gold-hover) 345deg,
-            transparent 360deg);
-        -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-        -webkit-mask-composite: xor;
-        mask-composite: exclude;
-        animation: ringShineSpin 2.6s linear infinite;
-        pointer-events: none;
-    }
-
-    /* Pulso de luz en el signo "+", sincronizado a un ritmo más lento
-       para que no compita visualmente con el giro del anillo. Corre
-       siempre por defecto (incluido celular) — solo se pausa al
-       pasar el mouse de verdad, nunca por un tap táctil. */
-    .empty-state .ring svg.ic {
-        animation: plusGlowPulse 2.4s ease-in-out infinite;
-    }
-
-    /* IMPORTANTE (fix móvil): estas dos reglas antes vivían fuera de
-       cualquier media query, con selector ".ring:hover". En navegadores
-       móviles, tocar un elemento puede activar su estado :hover y
-       dejarlo "pegado" — el giro del anillo y el pulso del "+" se
-       detenían al primer toque y no volvían a animarse hasta tocar
-       otra parte de la pantalla (dando la falsa impresión de que la
-       animación "no se ve" en celular). Al restringirlas a
-       (hover: hover) and (pointer: fine), solo se aplican en equipos
-       con mouse real, y en celular la animación queda siempre activa. */
-    @media (hover: hover) and (pointer: fine) {
-        .empty-state .ring:hover::before { animation-play-state: paused; opacity: 0; }
-        .empty-state .ring:hover svg.ic { animation: none; }
-    }
-
-    @keyframes ringShineSpin {
-        to { transform: rotate(360deg); }
-    }
-
-    @keyframes plusGlowPulse {
-        0%, 100% { filter: drop-shadow(0 0 0px var(--gold)); opacity: 0.8; }
-        50% { filter: drop-shadow(0 0 7px var(--gold-hover)); opacity: 1; }
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-        .empty-state .ring::before { animation: none; opacity: 0; }
-        .empty-state .ring svg.ic { animation: none; }
+    .empty-state .ring:hover {
+        background: var(--gold);
+        color: #0a0d14;
+        transform: scale(1.05);
+        box-shadow: 0 0 20px rgba(217, 166, 83, 0.4);
     }
 
     .empty-state h3 {
@@ -978,7 +878,12 @@
         position: fixed;
         bottom: 24px;
         left: 50%;
-        transform: translateX(-50%) translateY(100px);
+        /* translateY en % (no px fijo): así siempre se esconde completo
+           bajo la pantalla sin importar cuánto crezca el cuadro cuando
+           el mensaje es largo y ocupa 2 líneas en celular — con un
+           valor fijo en px, un mensaje más alto que ese valor dejaba
+           un pedazo visible "pegado" abajo en vez de desaparecer. */
+        transform: translateX(-50%) translateY(150%);
         background: var(--success);
         color: #03140f;
         padding: 10px 20px;
@@ -1030,7 +935,6 @@
         .empty-state .ring { width: 58px; height: 58px; }
         .empty-state h3 { font-size: 16px; }
         .empty-state p { font-size: 12.5px; }
-        .empty-desc-header { gap: 4px; }
         .app-icon-card { padding: 12px 14px; gap: 10px; }
         .app-title { font-size: 14.5px; }
         .record-actions-row .btn { font-size: 10px; padding: 9px 4px; gap: 4px; }
@@ -1117,13 +1021,8 @@
             <div class="ring" onclick="document.getElementById('import-file-input').click()" data-tip="Haz clic para importar tu Excel o base de datos">
                 <svg class="ic" viewBox="0 0 24 24" style="width:24px;height:24px;"><path d="M12 5v14M5 12h14"/></svg>
             </div>
-            <div class="empty-desc-header">
-                <h3>Comienza con DataForge</h3>
-                <button id="empty-toggle-btn" onclick="toggleEmptyDesc()" class="btn btn-ghost-gold btn-icon-only empty-toggle-btn" aria-label="Contraer descripción" data-tip="Contraer descripción">
-                    <svg class="ic" viewBox="0 0 24 24"><path d="M18 15l-6-6-6 6"/></svg>
-                </button>
-            </div>
-            <p class="empty-desc" id="empty-desc">Importa tu excel o base de datos y trabaja fácil... o crea tu primer formulario desde cero... o elige una de nuestras 5 plantillas prediseñadas que además podrá exportar para revisar y aprender.</p>
+            <h3>Comienza con DataForge</h3>
+            <p>Importa tu excel o base de datos y trabaja fácil... o crea tu primer formulario desde cero... o elige una de nuestras 5 plantillas prediseñadas que además podrá exportar para revisar y aprender.</p>
             <div class="templates-grid">
                 <div class="template-card" onclick="loadTemplate('obras')">
                     <span>🏗️ Obras y Compras</span>
@@ -1254,7 +1153,7 @@
             </button>
         </div>
 
-        <div class="record-actions-row">
+        <div id="record-actions-row" class="record-actions-row">
             <button id="save-btn" onclick="saveCurrentRecordExplicit()" class="btn btn-gold">
                 <svg class="ic" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
                 Guardar
@@ -1273,7 +1172,7 @@
             </button>
         </div>
 
-        <div class="action-row">
+        <div id="runtime-action-row" class="action-row">
             <button id="back-parent-btn" onclick="goBackToParent()" class="btn btn-ghost-gold">
                 <svg class="ic" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
                 Volver
@@ -1362,9 +1261,23 @@
     let viewMode = 'table';
     let renderedRecordId = null;
 
-    // Sistema de Tour Guiado por Burbujas
-    let currentTourStep = 0;
-    const tourSteps = [
+    // ============================================================
+    // SISTEMA DE TOUR GUIADO POR BURBUJAS (generalizado)
+    // Soporta varios "recorridos" distintos (el de la portada y el
+    // del formulario), cada uno con su propia lista de pasos. Cada
+    // paso puede tener:
+    //   - target: id del elemento a resaltar (o nada, para centrar)
+    //   - before: función que se ejecuta antes de mostrar el paso
+    //     (por ejemplo, cambiar a vista de tabla o de formulario)
+    //   - skip: función que, si devuelve true, salta ese paso (por
+    //     ejemplo, "formularios relacionados" si este formulario no
+    //     tiene ninguno)
+    // ============================================================
+    let activeTourSteps = [];
+    let tourStepOrder = [];
+    let tourPos = 0;
+
+    const mainTourSteps = [
         {
             title: "👋 ¡Bienvenido a DataForge!",
             text: "Este tour interactivo te mostrará rápidamente cómo aprovechar todas las funciones de la aplicación para gestionar tus datos y hojas Excel.",
@@ -1387,12 +1300,84 @@
         }
     ];
 
-    function startTour() {
-        showLauncher();
-        currentTourStep = 0;
+    // Recorrido de la pantalla de un formulario (runtime). Se dispara
+    // automáticamente la primera vez que el usuario entra a CUALQUIER
+    // formulario (importado, de plantilla, o creado desde cero) —ver
+    // maybeStartRuntimeTour()— y también se puede volver a ver a mano
+    // con startRuntimeTour().
+    const runtimeTourSteps = [
+        {
+            title: "🗂️ Así funciona un formulario",
+            text: "Aquí puedes ver, cargar y organizar todos los datos de este formulario. Te muestro rápido las partes principales.",
+            target: null
+        },
+        {
+            title: "📊 Tabla principal",
+            text: "Todos los registros de este formulario, uno por fila. Toca cualquier fila para abrirla y editarla en detalle.",
+            target: "runtime-table",
+            before: () => { viewMode = 'table'; renderRuntime(); }
+        },
+        {
+            title: "🔀 Cambiar de vista",
+            text: "Alterna en cualquier momento entre ver todos los registros en tabla, o uno a la vez en formulario.",
+            target: "view-toggle"
+        },
+        {
+            title: "📝 Vista de formulario",
+            text: "Aquí completas los datos de un solo registro, campo por campo — ideal para cargar o revisar uno con calma.",
+            target: "runtime-card",
+            before: () => { viewMode = 'record'; renderRuntime(); }
+        },
+        {
+            title: "💾 Acciones del registro",
+            text: "Guarda los cambios, limpia el registro actual, crea uno nuevo o elimínalo — todo desde estos botones.",
+            target: "record-actions-row",
+            before: () => { viewMode = 'record'; renderRuntime(); }
+        },
+        {
+            title: "🧵 Formularios relacionados",
+            text: "Si este formulario tiene otros datos ligados a él (como Compras dentro de Obras), aparecen aquí. Tócalos para entrar y ver solo los registros de este registro padre.",
+            target: "children-section",
+            skip: () => getChildForms(activeFormId).length === 0
+        },
+        {
+            title: "🧭 Navegación",
+            text: "Vuelve al formulario padre (si corresponde), al inicio, o edita la estructura de este formulario (sus campos).",
+            target: "runtime-action-row"
+        }
+    ];
+
+    function computeStepOrder(steps) {
+        return steps.map((s, i) => i).filter(i => !(steps[i].skip && steps[i].skip()));
+    }
+
+    function startTourWith(steps, opts) {
+        opts = opts || {};
+        activeTourSteps = steps;
+        tourStepOrder = computeStepOrder(steps);
+        tourPos = 0;
+        if (tourStepOrder.length === 0) return;
+        if (opts.goLauncher) showLauncher();
         document.getElementById('tour-overlay').classList.add('show');
         document.getElementById('tour-bubble').classList.add('show');
         renderTourStep();
+    }
+
+    function startTour() { startTourWith(mainTourSteps, { goLauncher: true }); }
+    function startRuntimeTour() { startTourWith(runtimeTourSteps); }
+
+    // Se llama justo después de entrar a la pantalla de un formulario.
+    // La primera vez que esto ocurre (en todo el uso de la app, se
+    // recuerda con localStorage), lanza automáticamente el recorrido
+    // del formulario, para que el usuario no tenga que adivinar nada.
+    function maybeStartRuntimeTour() {
+        let seen = null;
+        try { seen = localStorage.getItem('dataforge-runtime-tour-done'); } catch (e) {}
+        if (seen === '1') return;
+        try { localStorage.setItem('dataforge-runtime-tour-done', '1'); } catch (e) {}
+        // Pequeña pausa para que la pantalla del formulario termine de
+        // pintarse antes de empezar a resaltar botones.
+        setTimeout(() => startRuntimeTour(), 450);
     }
 
     function endTour() {
@@ -1403,8 +1388,8 @@
     }
 
     function nextTourStep() {
-        currentTourStep++;
-        if (currentTourStep >= tourSteps.length) {
+        tourPos++;
+        if (tourPos >= tourStepOrder.length) {
             endTour();
             showToast("¡Tour completado con éxito!");
             return;
@@ -1450,10 +1435,12 @@
         const previousHighlight = document.querySelector('.tour-target-highlight');
         if (previousHighlight) previousHighlight.classList.remove('tour-target-highlight');
 
-        const step = tourSteps[currentTourStep];
+        const step = activeTourSteps[tourStepOrder[tourPos]];
+        if (step.before) step.before();
+
         document.getElementById('tour-title').textContent = step.title;
         document.getElementById('tour-text').textContent = step.text;
-        document.getElementById('tour-step-indicator').textContent = `Paso ${currentTourStep + 1} de ${tourSteps.length}`;
+        document.getElementById('tour-step-indicator').textContent = `Paso ${tourPos + 1} de ${tourStepOrder.length}`;
 
         if (!step.target) { centerTourBubble(); return; }
 
@@ -1801,6 +1788,7 @@
         document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
         document.getElementById('screen-runtime').classList.remove('hidden');
         renderRuntime();
+        maybeStartRuntimeTour();
     }
 
     function renderLauncherList() {
@@ -1845,6 +1833,7 @@
                 document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
                 document.getElementById('screen-runtime').classList.remove('hidden');
                 renderRuntime();
+                maybeStartRuntimeTour();
             };
             listContainer.appendChild(card);
         });
@@ -2025,6 +2014,7 @@
         document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
         document.getElementById('screen-runtime').classList.remove('hidden');
         renderRuntime();
+        maybeStartRuntimeTour();
     }
 
     function goBackToParent() {
@@ -2610,46 +2600,9 @@
         applyHeroToggleIcon();
     }
 
-    // ============================================================
-    // CONTRAER / EXPANDIR EL TEXTO DEL ESTADO VACÍO
-    // ("Comienza con DataForge") — mismo mecanismo que el hero:
-    // funciona igual en PC y en celular, y recuerda la preferencia
-    // entre visitas. Por defecto arranca expandido en ambos casos.
-    // ============================================================
-
-    function applyEmptyToggleIcon() {
-        const btn = document.getElementById('empty-toggle-btn');
-        const desc = document.getElementById('empty-desc');
-        if (!btn || !desc) return;
-        const collapsed = desc.classList.contains('collapsed');
-        btn.innerHTML = collapsed ? ICON_CHEVRON_DOWN : ICON_CHEVRON_UP;
-        const label = collapsed ? 'Expandir descripción' : 'Contraer descripción';
-        btn.setAttribute('data-tip', label);
-        btn.setAttribute('aria-label', label);
-    }
-
-    function toggleEmptyDesc() {
-        const desc = document.getElementById('empty-desc');
-        if (!desc) return;
-        desc.classList.toggle('collapsed');
-        try { localStorage.setItem('dataforge-empty-collapsed', desc.classList.contains('collapsed') ? '1' : '0'); } catch (e) {}
-        applyEmptyToggleIcon();
-    }
-
-    function initEmptyCollapse() {
-        const desc = document.getElementById('empty-desc');
-        if (!desc) return;
-        let saved = null;
-        try { saved = localStorage.getItem('dataforge-empty-collapsed'); } catch (e) {}
-        const shouldCollapse = saved === '1';
-        desc.classList.toggle('collapsed', shouldCollapse);
-        applyEmptyToggleIcon();
-    }
-
     initMiniTips();
     applyThemeIcon();
     initHeroCollapse();
-    initEmptyCollapse();
     showLauncher();
 </script>
 
