@@ -1283,12 +1283,15 @@
 <div id="readme-modal" class="modal-overlay hidden">
     <div class="modal-content">
         <div class="brand-row" style="margin-bottom: 0; padding-bottom: 12px;">
-            <div class="brand" style="font-size: 18px;">DataForge<small>DOCUMENTACIÓN Y README</small></div>
+            <div class="brand" style="font-size: 18px;">DataForge<small>VERSIÓN 1.1.0 — README</small></div>
             <button onclick="closeReadmeModal()" class="btn btn-tiny btn-ghost-gold">Cerrar</button>
         </div>
         <div class="modal-body">
             <h3>📖 Acerca de DataForge</h3>
             <p>DataForge es una aplicación web para trabajar, construir y gestionar datos, formularios y estructuras de datos de forma visual y ligera. Pensada para usuarios que necesitan trabajar, prototipar o gestionar pequeños flujos de captura sin depender de soluciones complejas.</p>
+            
+            <h3>🛠️ Historial de Correcciones y Cambios</h3>
+            <p><strong>v1.1.0 (Fix actual):</strong> Se revisa error para compartir planillas por aplicaciones de mensajería (WhatsApp/Telegram). Debido a las restricciones de los navegadores móviles que impedían adjuntar archivos binarios directamente mediante la API de compartir nativa, se implementó un flujo optimizado que descarga automáticamente el archivo JSON en el dispositivo y facilita su adjunto manual inmediato mediante el portapapeles o clip.</p>
         </div>
     </div>
 </div>
@@ -1846,7 +1849,6 @@
         if (!activeFormId) return;
         const formObj = getForm(activeFormId);
         if (!formObj) return;
-        // Abre directamente el modal garantizando la descarga del archivo JSON y el enlace a WhatsApp
         document.getElementById('share-modal').classList.remove('hidden');
     }
 
