@@ -1121,7 +1121,7 @@
             </select>
         </div>
 
-        <label class="field-label">Campos de datos</label>
+        <label class="field-label">Campos de datos (Ordena con ↑ ↓)</label>
         <div id="builder-fields-container" class="builder-container" data-tour="builder-fields-section"></div>
 
         <div class="gold-divider"></div>
@@ -1292,7 +1292,7 @@
     let renderedRecordId = null;
 
     let currentTourStep = 0;
-    let activeTourType = 'launcher'; // 'launcher', 'runtime', o 'builder'
+    let activeTourType = 'launcher';
 
     const launcherTourSteps = [
         {
@@ -1357,8 +1357,8 @@
             target: "builder-pivot-section"
         },
         {
-            title: "📋 Campos de datos",
-            text: "Define los nombres, tipos de datos (texto, número, fecha, email, sí/no) y si son obligatorios para cada campo.",
+            title: "📋 Campos de datos y orden",
+            text: "Define los nombres, tipos y orden de tus campos. Usa las flechas (↑ ↓) en cada campo para ordenarlos como prefieras.",
             target: "builder-fields-section"
         },
         {
@@ -1845,7 +1845,6 @@
             fields: [{ name: "", type: "text", required: false }], data: []
         });
         editFormStructure(newId, { isNew: true });
-        // Iniciar automáticamente el tour en la pantalla de constructor al hacer clic en + Nuevo
         setTimeout(() => startTour('builder'), 250);
     }
 
@@ -1903,13 +1902,31 @@
                         <option value="checkbox" ${field.type==='checkbox'?'selected':''}>Sí/No</option>
                     </select>
                 </div>
-                <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
                     <label class="row-options"><input type="checkbox" class="f-required" ${field.required ? 'checked' : ''}> Obligatorio</label>
-                    ${formObj.fields.length > 1 ? `<button type="button" class="btn btn-danger-outline btn-tiny" onclick="removeBuilderField(${index})">Quitar</button>` : ''}
+                    <div style="display:flex; gap:4px;">
+                        ${index > 0 ? `<button type="button" class="btn btn-ghost-gold btn-tiny" onclick="moveField(${index}, -1)" data-tip="Mover arriba">↑</button>` : ''}
+                        ${index < formObj.fields.length - 1 ? `<button type="button" class="btn btn-ghost-gold btn-tiny" onclick="moveField(${index}, 1)" data-tip="Mover abajo">↓</button>` : ''}
+                        ${formObj.fields.length > 1 ? `<button type="button" class="btn btn-danger-outline btn-tiny" onclick="removeBuilderField(${index})">Quitar</button>` : ''}
+                    </div>
                 </div>
             `;
             container.appendChild(row);
         });
+        initMiniTips();
+    }
+
+    function moveField(index, direction) {
+        saveBuilderState();
+        const formObj = getForm(editingFormId);
+        const targetIndex = index + direction;
+        if (targetIndex < 0 || targetIndex >= formObj.fields.length) return;
+        
+        const temp = formObj.fields[index];
+        formObj.fields[index] = formObj.fields[targetIndex];
+        formObj.fields[targetIndex] = temp;
+        
+        renderBuilderFields();
     }
 
     function addBuilderField() {
