@@ -855,7 +855,10 @@
 
     table.records-table tr.table-row { cursor: pointer; transition: 0.15s; }
     table.records-table tr.table-row:hover td { background: var(--surface-hover); }
-    table.records-table tr.table-row-active td { background: var(--gold-soft); }
+    table.records-table tr.table-row-active td { 
+        background: var(--gold-soft); 
+        animation: badgeGlowPulse 2.4s ease-in-out infinite;
+    }
 
     .top-bar {
         display: flex;
@@ -1975,7 +1978,6 @@
         const listContainer = document.getElementById('export-tables-list');
         listContainer.innerHTML = '';
 
-        // Ordenar tablas: primero las editadas/creadas (isUserModified === true), luego plantillas/precargadas
         const sortedForms = [...formsRegistry].sort((a, b) => {
             const modA = a.isUserModified ? 1 : 0;
             const modB = b.isUserModified ? 1 : 0;
