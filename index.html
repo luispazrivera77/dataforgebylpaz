@@ -1221,7 +1221,17 @@
                 <span id="runtime-depth-dot" class="depth-dot"></span>
                 <strong id="runtime-title">Formulario</strong>
             </div>
-            <div style="display:flex; align-items:center; gap:10px;">
+            <div style="display:flex; align-items:center; gap:8px;">
+                <!-- Buscador colapsable tipo lupa -->
+                <div id="runtime-search-wrapper" style="position:relative; display:flex; align-items:center;">
+                    <button id="runtime-search-toggle" onclick="toggleRuntimeSearch()" class="btn btn-ghost-gold btn-icon-only" aria-label="Buscar en registros" data-tip="Buscar en registros" style="width:34px;height:34px;padding:0;display:flex;align-items:center;justify-content:center;">
+                        <svg class="ic" viewBox="0 0 24 24" style="width:15px;height:15px;"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                    </button>
+                    <div id="runtime-search-dropdown" style="position:absolute; right:0; top:40px; background:var(--surface-2); border:1px solid var(--border-gold); border-radius:10px; padding:8px; box-shadow:0 10px 25px rgba(0,0,0,0.7); display:none; z-index:100; width:220px;">
+                        <input type="text" id="runtime-search-input" placeholder="Buscar registros..." oninput="handleRuntimeSearch(this.value)" style="font-size:12.5px; padding:8px 10px; width:100%;">
+                    </div>
+                </div>
+
                 <span id="record-indicator" data-tour="record-indicator">1 / 1</span>
                 <div id="view-toggle" class="view-toggle" role="group" aria-label="Cambiar vista" data-tour="view-toggle">
                     <span class="view-toggle-opt" data-mode="record" onclick="setViewMode('record')" role="button" tabindex="0">
@@ -1361,7 +1371,7 @@
             <p>DataForge es una aplicación web para trabajar, construir y gestionar datos, formularios y estructuras de datos de forma visual y ligera. Pensada para usuarios que necesitan trabajar, prototipar o gestionar pequeños flujos de captura sin depender de soluciones complejas.</p>
             
             <h3>🛠️ Historial de Correcciones y Cambios</h3>
-            <p><strong>v1.1.0:</strong> Se añade persistencia local con <code>localStorage</code> y selección inteligente de tablas editadas para exportación.</p>
+            <p><strong>v1.1.0:</strong> Se añade persistencia local con <code>localStorage</code>, buscador desplegable en tiempo de ejecución y auto-desplazamiento (scrollIntoView) al registro coincidente en vista de tabla.</p>
         </div>
     </div>
 </div>
@@ -1410,6 +1420,7 @@
 
     let currentSortColumn = null;
     let currentSortDirection = 'asc';
+    let runtimeSearchQuery = '';
 
     let currentTourStep = 0;
     let activeTourType = 'launcher';
@@ -1710,6 +1721,17 @@
             list = form.data.filter(r => r._parentId === parentRecord._id);
         }
 
+        // Filtrado por buscador de runtime
+        if (runtimeSearchQuery.trim() !== '') {
+            const q = runtimeSearchQuery.trim().toLowerCase();
+            list = list.filter(r => {
+                return form.fields.some(f => {
+                    const val = String(r[f.name] || '').toLowerCase();
+                    return val.includes(q);
+                });
+            });
+        }
+
         if (currentSortColumn) {
             list.sort((a, b) => {
                 let valA = a[currentSortColumn];
@@ -1772,6 +1794,7 @@
         recordSnapshot = null;
         viewMode = 'table';
         currentSortColumn = null;
+        runtimeSearchQuery = '';
         document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
         document.getElementById('screen-launcher').classList.remove('hidden');
         
@@ -1793,6 +1816,7 @@
         recordIdCounter = 1;
         deletedRecordsStack = [];
         currentSortColumn = null;
+        runtimeSearchQuery = '';
         localStorage.removeItem('dataforge_registry');
         localStorage.removeItem('dataforge_counter');
         showToast("Aplicación reiniciada");
@@ -1914,6 +1938,7 @@
         recordIdCounter = 500;
         deletedRecordsStack = [];
         currentSortColumn = null;
+        runtimeSearchQuery = '';
         persistData();
         showToast("¡Plantilla cargada con éxito!");
         showLauncher();
@@ -1994,6 +2019,7 @@
         activeFormId = formId;
         viewMode = 'table';
         currentSortColumn = null;
+        runtimeSearchQuery = '';
         document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
         document.getElementById('screen-runtime').classList.remove('hidden');
         renderRuntime();
@@ -2118,9 +2144,53 @@
         activeFormId = targetFormId;
         viewMode = 'table';
         currentSortColumn = null;
+        runtimeSearchQuery = '';
         document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
         document.getElementById('screen-runtime').classList.remove('hidden');
         renderRuntime();
+
+        // Auto-desplazamiento exacto a la fila correspondiente en la tabla
+        setTimeout(() => {
+            const activeRow = document.querySelector('tr.table-row-active');
+            if (activeRow) {
+                activeRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }, 100);
+    }
+
+    // Funciones del buscador tipo lupa en runtime
+    function toggleRuntimeSearch() {
+        const dropdown = document.getElementById('runtime-search-dropdown');
+        const input = document.getElementById('runtime-search-input');
+        if (dropdown.style.display === 'block') {
+            dropdown.style.display = 'none';
+        } else {
+            dropdown.style.display = 'block';
+            input.focus();
+        }
+    }
+
+    function handleRuntimeSearch(val) {
+        runtimeSearchQuery = val;
+        renderRuntime();
+
+        // Al buscar, si hay resultados en la tabla, automáticamente apuntamos al primer resultado y hacemos scroll visible
+        const visibleList = getVisibleRecords(activeFormId);
+        if (visibleList.length > 0) {
+            const formObj = getForm(activeFormId);
+            const firstMatch = visibleList[0];
+            const realIdx = formObj.data.findIndex(r => r._id === firstMatch._id);
+            if (realIdx >= 0) {
+                activeIndexByForm[activeFormId] = realIdx;
+            }
+            // Actualizamos la fila activa en la tabla y hacemos scrollIntoView
+            setTimeout(() => {
+                const activeRow = document.querySelector('tr.table-row-active');
+                if (activeRow) {
+                    activeRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }, 50);
+        }
     }
 
     function renderLauncherList() {
@@ -2155,6 +2225,7 @@
                 activeFormId = form.id;
                 viewMode = 'table';
                 currentSortColumn = null;
+                runtimeSearchQuery = '';
                 document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
                 document.getElementById('screen-runtime').classList.remove('hidden');
                 renderRuntime();
@@ -2363,6 +2434,7 @@
         activeFormId = formId;
         viewMode = 'table';
         currentSortColumn = null;
+        runtimeSearchQuery = '';
         document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
         document.getElementById('screen-runtime').classList.remove('hidden');
         renderRuntime();
@@ -2375,6 +2447,7 @@
         activeFormId = prevId;
         viewMode = 'table';
         currentSortColumn = null;
+        runtimeSearchQuery = '';
         renderRuntime();
     }
 
@@ -2407,7 +2480,7 @@
         }
 
         let recordList = getVisibleRecords(formObj.id);
-        if (recordList.length === 0) getActiveRecord(formObj.id);
+        if (recordList.length === 0 && runtimeSearchQuery === '') getActiveRecord(formObj.id);
         recordList = getVisibleRecords(formObj.id);
 
         let idx = activeIndexByForm[formObj.id] || 0;
@@ -2429,6 +2502,14 @@
             renderRecordsTable(formObj, recordList, idx);
             renderedRecordId = null;
             recordSnapshot = null;
+
+            // Auto-desplazamiento suave para ubicar la fila activa exactamente en la vista de la tabla
+            setTimeout(() => {
+                const activeRow = document.querySelector('tr.table-row-active');
+                if (activeRow) {
+                    activeRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }, 50);
         } else {
             document.getElementById('record-nav-bar').style.display = 'flex';
             document.getElementById('runtime-card').style.display = 'flex';
@@ -2486,16 +2567,20 @@
         });
         html += `</tr></thead><tbody>`;
 
-        recordList.forEach((rec, i) => {
-            html += `<tr class="table-row ${i === activeIdx ? 'table-row-active' : ''}" data-idx="${i}">`;
-            cols.forEach(f => {
-                let val = rec[f.name];
-                if (f.type === 'checkbox') val = val ? '✓ Sí' : '✗ No';
-                else if (val === undefined || val === '') val = '—';
-                html += `<td>${val}</td>`;
+        if (recordList.length === 0) {
+            html += `<tr><td colspan="${cols.length}" style="text-align:center; padding: 20px; color: var(--text-dim);">No se encontraron registros coincidentes.</td></tr>`;
+        } else {
+            recordList.forEach((rec, i) => {
+                html += `<tr class="table-row ${i === activeIdx ? 'table-row-active' : ''}" data-idx="${i}">`;
+                cols.forEach(f => {
+                    let val = rec[f.name];
+                    if (f.type === 'checkbox') val = val ? '✓ Sí' : '✗ No';
+                    else if (val === undefined || val === '') val = '—';
+                    html += `<td>${val}</td>`;
+                });
+                html += `</tr>`;
             });
-            html += `</tr>`;
-        });
+        }
         html += `</tbody></table></div>`;
         tableEl.innerHTML = html;
         tableEl.querySelectorAll('tr.table-row').forEach(row => {
@@ -2910,6 +2995,7 @@
                     recordIdCounter = Math.max(...formsRegistry.flatMap(f => f.data.map(r => r._id || 0)), 0) + 1;
                     deletedRecordsStack = [];
                     currentSortColumn = null;
+                    runtimeSearchQuery = '';
                     persistData();
                     showLauncher();
                     showToast("Datos y relaciones importados exitosamente");
