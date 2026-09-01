@@ -2271,6 +2271,7 @@
 
     function saveAndReturnLauncher() {
         saveBuilderState();
+        renderLauncherList(); // Actualiza inmediatamente la lista principal al guardar el cambio de nombre
         showLauncher();
     }
 
@@ -2282,6 +2283,7 @@
         formsRegistry = formsRegistry.filter(f => f.id !== editingFormId);
         editingFormId = null;
         persistData();
+        renderLauncherList(); // Actualiza inmediatamente la lista principal al eliminar
         showToast("Formulario eliminado");
         showLauncher();
     }
@@ -2492,7 +2494,6 @@
             currentRecord[input.dataset.name] = input.type === 'checkbox' ? input.checked : input.value;
         });
         persistData();
-        renderLauncherList(); // Sincroniza en tiempo real los cambios con el lanzador principal
     }
 
     function undoCurrentRecordChanges() {
