@@ -635,9 +635,10 @@
         margin-bottom: 18px;
         flex-wrap: wrap;
         gap: 10px;
+        position: relative;
     }
 
-    .form-header-title { display: flex; align-items: center; gap: 10px; min-width: 0; }
+    .form-header-title { display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1; }
     .form-header-title .depth-dot { width: 9px; height: 9px; flex-shrink: 0; }
     
     @keyframes runtimeTitleLightPulse {
@@ -684,6 +685,7 @@
         border-radius: 6px; 
         border: 1px solid var(--border-gold); 
         animation: badgeGlowPulse 2.4s ease-in-out infinite;
+        white-space: nowrap;
     }
 
     .runtime-scroll { flex: 1; overflow-y: auto; min-height: 0; padding-right: 4px; }
@@ -801,6 +803,7 @@
         border-radius: 20px;
         padding: 3px;
         cursor: pointer;
+        flex-shrink: 0;
     }
 
     .view-toggle-opt {
@@ -1221,13 +1224,13 @@
                 <span id="runtime-depth-dot" class="depth-dot"></span>
                 <strong id="runtime-title">Formulario</strong>
             </div>
-            <div style="display:flex; align-items:center; gap:8px;">
+            <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
                 <!-- Buscador colapsable tipo lupa -->
                 <div id="runtime-search-wrapper" style="position:relative; display:flex; align-items:center;">
                     <button id="runtime-search-toggle" onclick="toggleRuntimeSearch()" class="btn btn-ghost-gold btn-icon-only" aria-label="Buscar en registros" data-tip="Buscar en registros" style="width:34px;height:34px;padding:0;display:flex;align-items:center;justify-content:center;">
                         <svg class="ic" viewBox="0 0 24 24" style="width:15px;height:15px;"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
                     </button>
-                    <div id="runtime-search-dropdown" style="position:absolute; right:0; top:40px; background:var(--surface-2); border:1px solid var(--border-gold); border-radius:10px; padding:8px; box-shadow:0 10px 25px rgba(0,0,0,0.7); display:none; z-index:100; width:220px;">
+                    <div id="runtime-search-dropdown" style="position:absolute; right:0; top:42px; background:var(--surface-2); border:1px solid var(--border-gold); border-radius:10px; padding:8px; box-shadow:0 10px 25px rgba(0,0,0,0.85); display:none; z-index:200; width:220px;">
                         <input type="text" id="runtime-search-input" placeholder="Buscar registros..." oninput="handleRuntimeSearch(this.value)" style="font-size:12.5px; padding:8px 10px; width:100%;">
                     </div>
                 </div>
@@ -1371,7 +1374,7 @@
             <p>DataForge es una aplicación web para trabajar, construir y gestionar datos, formularios y estructuras de datos de forma visual y ligera. Pensada para usuarios que necesitan trabajar, prototipar o gestionar pequeños flujos de captura sin depender de soluciones complejas.</p>
             
             <h3>🛠️ Historial de Correcciones y Cambios</h3>
-            <p><strong>v1.1.0:</strong> Se añade persistencia local con <code>localStorage</code>, buscador desplegable en tiempo de ejecución y auto-desplazamiento (scrollIntoView) al registro coincidente en vista de tabla.</p>
+            <p><strong>v1.1.0:</strong> Se añade persistencia local con <code>localStorage</code>, buscador desplegable en tiempo de ejecución, auto-desplazamiento al registro coincidente y corrección de alineación del buscador en pantallas móviles.</p>
         </div>
     </div>
 </div>
