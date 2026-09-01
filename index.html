@@ -1926,7 +1926,6 @@
             }];
         }
 
-        // Agregar las plantillas generadas a la lista sin destruir los formularios previos existentes
         formsRegistry.push(...newForms);
         recordIdCounter = 500;
         deletedRecordsStack = [];
@@ -2493,6 +2492,7 @@
             currentRecord[input.dataset.name] = input.type === 'checkbox' ? input.checked : input.value;
         });
         persistData();
+        renderLauncherList(); // Sincroniza en tiempo real los cambios con el lanzador principal
     }
 
     function undoCurrentRecordChanges() {
