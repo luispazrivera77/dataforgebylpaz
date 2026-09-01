@@ -1082,7 +1082,7 @@
                 <button id="btn-import-excel" onclick="document.getElementById('import-file-input').click()" class="btn btn-ghost-gold btn-icon-only" aria-label="Cargar desde Excel o JSON" data-tip="Cargar archivo">
                     <svg class="ic" viewBox="0 0 24 24"><path d="M12 21v-11"/><path d="M7.5 13.5 12 9l4.5 4.5"/><path d="M5 3h14"/></svg>
                 </button>
-                <button id="export-btn" onclick="exportAllData()" class="btn btn-ghost-gold btn-icon-only" aria-label="Exportar a Excel" data-tip="Exportar a Excel" style="display:none;">
+                <button id="export-btn" onclick="openExportModal()" class="btn btn-ghost-gold btn-icon-only" aria-label="Exportar a Excel" data-tip="Exportar a Excel" style="display:none;">
                     <svg class="ic" viewBox="0 0 24 24"><path d="M12 3v11"/><path d="M7.5 10.5 12 15l4.5-4.5"/><path d="M5 21h14"/></svg>
                 </button>
                 <button id="export-csv-btn" onclick="exportDataCSV()" class="btn btn-ghost-gold btn-icon-only" aria-label="Exportar a CSV" data-tip="Exportar a CSV" style="display:none;">
@@ -1316,6 +1316,23 @@
     </div>
 </div>
 
+<div id="export-modal" class="modal-overlay hidden">
+    <div class="modal-content" style="max-width: 440px;">
+        <div class="brand-row" style="margin-bottom: 0; padding-bottom: 12px;">
+            <div class="brand" style="font-size: 18px;">Exportar a Excel<small>SELECCIONAR TABLA O HOJA</small></div>
+            <button onclick="closeExportModal()" class="btn btn-tiny btn-ghost-gold">Cerrar</button>
+        </div>
+        <div class="modal-body" style="display: flex; flex-direction: column; gap: 8px;">
+            <p style="margin:0 0 8px 0; font-size:12.5px; color: var(--text-dim);">Tus tablas editadas o creadas se muestran primero:</p>
+            <div id="export-tables-list" style="display: flex; flex-direction: column; gap: 6px; max-height: 260px; overflow-y: auto;"></div>
+        </div>
+        <div style="display: flex; gap: 8px; margin-top: 10px;">
+            <button onclick="exportAllData()" class="btn btn-ghost-gold" style="flex: 1; font-size: 12px;">Exportar todas en un archivo</button>
+            <button onclick="closeExportModal()" class="btn" style="flex: 1; font-size: 12px;">Cancelar</button>
+        </div>
+    </div>
+</div>
+
 <div id="share-modal" class="modal-overlay hidden">
     <div class="modal-content" style="max-width: 420px;">
         <div class="brand-row" style="margin-bottom: 0; padding-bottom: 12px;">
@@ -1348,7 +1365,7 @@
             <p>DataForge es una aplicación web para trabajar, construir y gestionar datos, formularios y estructuras de datos de forma visual y ligera. Pensada para usuarios que necesitan trabajar, prototipar o gestionar pequeños flujos de captura sin depender de soluciones complejas.</p>
             
             <h3>🛠️ Historial de Correcciones y Cambios</h3>
-            <p><strong>v1.1.0:</strong> Se añade persistencia local con <code>localStorage</code> y se corrige la selección exacta de filas al utilizar el buscador global.</p>
+            <p><strong>v1.1.0:</strong> Se añade persistencia local con <code>localStorage</code> y selección inteligente de tablas editadas para exportación.</p>
         </div>
     </div>
 </div>
@@ -1730,6 +1747,7 @@
             }
             const rec = { _id: nextRecordId(), _parentId: parentId };
             form.data.push(rec);
+            form.isUserModified = true;
             persistData();
             list = getVisibleRecords(formId);
             activeIndexByForm[formId] = 0;
@@ -1808,7 +1826,7 @@
 
             const baseId = Date.now();
             newForms = [{
-                id: baseId, title: "Lista Supermercado", webhook: "", pivotFormId: null, pivotField: "",
+                id: baseId, title: "Lista Supermercado", webhook: "", pivotFormId: null, pivotField: "", isUserModified: false,
                 fields: [
                     { name: "Producto", type: "text", required: true },
                     { name: "Cantidad", type: "text", required: true },
@@ -1822,7 +1840,7 @@
             const baseId2 = baseId1 + 1;
             newForms = [
                 {
-                    id: baseId1, title: "Obras", webhook: "", pivotFormId: null, pivotField: "",
+                    id: baseId1, title: "Obras", webhook: "", pivotFormId: null, pivotField: "", isUserModified: false,
                     fields: [
                         { name: "Nombre Obra", type: "text", required: true },
                         { name: "Dirección", type: "text", required: false },
@@ -1838,7 +1856,7 @@
                     ]
                 },
                 {
-                    id: baseId2, title: "Compras", webhook: "", pivotFormId: baseId1, pivotField: "Nombre Obra",
+                    id: baseId2, title: "Compras", webhook: "", pivotFormId: baseId1, pivotField: "Nombre Obra", isUserModified: false,
                     fields: [
                         { name: "Fecha compra", type: "date", required: true },
                         { name: "Producto comprado", type: "text", required: true },
@@ -1858,7 +1876,7 @@
         } else if (type === 'inventario') {
             const baseId = Date.now();
             newForms = [{
-                id: baseId, title: "Inventario Bodega", webhook: "", pivotFormId: null, pivotField: "",
+                id: baseId, title: "Inventario Bodega", webhook: "", pivotFormId: null, pivotField: "", isUserModified: false,
                 fields: [
                     { name: "Producto", type: "text", required: true },
                     { name: "Categoría", type: "text", required: true },
@@ -1876,7 +1894,7 @@
         } else if (type === 'encuesta') {
             const baseId = Date.now();
             newForms = [{
-                id: baseId, title: "Encuesta Satisfacción", webhook: "", pivotFormId: null, pivotField: "",
+                id: baseId, title: "Encuesta Satisfacción", webhook: "", pivotFormId: null, pivotField: "", isUserModified: false,
                 fields: [
                     { name: "Usuario", type: "text", required: true },
                     { name: "Servicio", type: "text", required: true },
@@ -1893,7 +1911,7 @@
         } else if (type === 'usuarios') {
             const baseId = Date.now();
             newForms = [{
-                id: baseId, title: "Registro Usuarios", webhook: "", pivotFormId: null, pivotField: "",
+                id: baseId, title: "Registro Usuarios", webhook: "", pivotFormId: null, pivotField: "", isUserModified: false,
                 fields: [
                     { name: "Nombre", type: "text", required: true },
                     { name: "Apellido", type: "text", required: true },
@@ -1910,7 +1928,7 @@
         } else if (type === 'incidencias') {
             const baseId = Date.now();
             newForms = [{
-                id: baseId, title: "Reporte Incidencias", webhook: "", pivotFormId: null, pivotField: "",
+                id: baseId, title: "Reporte Incidencias", webhook: "", pivotFormId: null, pivotField: "", isUserModified: false,
                 fields: [
                     { name: "Descripción", type: "text", required: true },
                     { name: "Prioridad", type: "text", required: true },
@@ -1950,6 +1968,65 @@
 
     function closeShareModal() {
         document.getElementById('share-modal').classList.add('hidden');
+    }
+
+    function openExportModal() {
+        const modal = document.getElementById('export-modal');
+        const listContainer = document.getElementById('export-tables-list');
+        listContainer.innerHTML = '';
+
+        // Ordenar tablas: primero las editadas/creadas (isUserModified === true), luego plantillas/precargadas
+        const sortedForms = [...formsRegistry].sort((a, b) => {
+            const modA = a.isUserModified ? 1 : 0;
+            const modB = b.isUserModified ? 1 : 0;
+            return modB - modA;
+        });
+
+        sortedForms.forEach(form => {
+            const isExportable = form.data.some(r => recordIsExportable(form.id, r));
+            if (!isExportable && countFilledRecords(form, form.data) === 0) return;
+
+            const badgeText = form.isUserModified ? '✨ Editada / Creada' : '📋 Plantilla';
+            const badgeColor = form.isUserModified ? 'var(--gold)' : 'var(--text-dim)';
+
+            const item = document.createElement('div');
+            item.className = 'search-result-item';
+            item.style.flexDirection = 'row';
+            item.style.justifyContent = 'space-between';
+            item.style.alignItems = 'center';
+            item.innerHTML = `
+                <div style="display: flex; flex-direction: column; gap: 2px;">
+                    <span style="font-size: 13.5px; font-weight: 500; color: var(--text);">${form.title}</span>
+                    <span style="font-family: var(--font-mono); font-size: 10px; color: ${badgeColor};">${badgeText}</span>
+                </div>
+                <button class="btn btn-tiny btn-gold" style="padding: 6px 12px;">Exportar</button>
+            `;
+            item.onclick = () => exportSingleForm(form.id);
+            listContainer.appendChild(item);
+        });
+
+        if (listContainer.children.length === 0) {
+            listContainer.innerHTML = `<div style="text-align:center; padding: 16px; color: var(--text-dim); font-size: 13px;">No hay registros para exportar.</div>`;
+        }
+
+        modal.classList.remove('hidden');
+    }
+
+    function closeExportModal() {
+        document.getElementById('export-modal').classList.add('hidden');
+    }
+
+    function exportSingleForm(formId) {
+        const formObj = getForm(formId);
+        if (!formObj) return;
+
+        const wb = XLSX.utils.book_new();
+        const rows = formToRows(formObj);
+        const ws = XLSX.utils.aoa_to_sheet(rows);
+        XLSX.utils.book_append_sheet(wb, ws, formObj.title.slice(0, 31));
+        XLSX.writeFile(wb, `DataForge_${formObj.title.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.xlsx`);
+        closeExportModal();
+        showToast(`Tabla "${formObj.title}" exportada correctamente`);
     }
 
     function getShareBlobAndData() {
@@ -2106,7 +2183,7 @@
     function startNewForm() {
         const newId = formsRegistry.length ? Math.max(...formsRegistry.map(f => f.id)) + 1 : 1;
         formsRegistry.push({
-            id: newId, title: "", webhook: "", pivotFormId: null, pivotField: "",
+            id: newId, title: "", webhook: "", pivotFormId: null, pivotField: "", isUserModified: true,
             fields: [{ name: "", type: "text", required: false }], data: []
         });
         persistData();
@@ -2237,6 +2314,7 @@
         formObj.data = [];
         activeIndexByForm[formObj.id] = 0;
         resetDescendantIndices(formObj.id);
+        formObj.isUserModified = true;
         persistData();
 
         if (hasData) showToast('Relación actualizada');
@@ -2248,6 +2326,7 @@
 
         formObj.title = document.getElementById('form-title-input').value || 'Sin nombre';
         formObj.webhook = document.getElementById('form-webhook-input').value.trim();
+        formObj.isUserModified = true;
 
         const pivotSelect = document.getElementById('form-pivot-source');
         if (pivotSelect && pivotSelect.value) {
@@ -2271,7 +2350,7 @@
 
     function saveAndReturnLauncher() {
         saveBuilderState();
-        renderLauncherList(); // Actualiza inmediatamente la lista principal al guardar el cambio de nombre
+        renderLauncherList();
         showLauncher();
     }
 
@@ -2283,7 +2362,7 @@
         formsRegistry = formsRegistry.filter(f => f.id !== editingFormId);
         editingFormId = null;
         persistData();
-        renderLauncherList(); // Actualiza inmediatamente la lista principal al eliminar
+        renderLauncherList();
         showToast("Formulario eliminado");
         showLauncher();
     }
@@ -2493,7 +2572,10 @@
         inputs.forEach(input => {
             currentRecord[input.dataset.name] = input.type === 'checkbox' ? input.checked : input.value;
         });
+        const formObj = getForm(activeFormId);
+        if (formObj) formObj.isUserModified = true;
         persistData();
+        renderLauncherList();
     }
 
     function undoCurrentRecordChanges() {
@@ -2505,9 +2587,13 @@
             const formObj = getForm(activeFormId);
             if (formObj) {
                 formObj.data.push(deletedInfo.record);
+                formObj.isUserModified = true;
                 deletedInfo.children.forEach(childRec => {
                     const childForm = getForm(childRec.formId);
-                    if (childForm) childForm.data.push(childRec.record);
+                    if (childForm) {
+                        childForm.data.push(childRec.record);
+                        childForm.isUserModified = true;
+                    }
                 });
                 persistData();
                 renderRuntime();
@@ -2543,6 +2629,8 @@
                 }
             });
 
+            const formObj = getForm(activeFormId);
+            if (formObj) formObj.isUserModified = true;
             persistData();
             showToast("Cambios deshechos");
             return;
@@ -2571,6 +2659,7 @@
         }
 
         saveCurrentRuntimeData();
+        formObj.isUserModified = true;
         const currentRecord = findRecordById(activeFormId, renderedRecordId);
         if (currentRecord) recordSnapshot = JSON.parse(JSON.stringify(currentRecord));
         
@@ -2601,6 +2690,7 @@
         const ok = await showConfirmDialog('¿Limpiar registro?');
         if (!ok) return;
         formObj.fields.forEach(f => { currentRecord[f.name] = f.type === 'checkbox' ? false : ''; });
+        formObj.isUserModified = true;
         persistData();
         renderRuntime();
         showToast("Registro limpiado");
@@ -2620,6 +2710,7 @@
         getChildForms(formId).forEach(child => {
             child.data.filter(r => r._parentId === recordId).forEach(r => deleteDescendantRecords(child.id, r._id));
             child.data = child.data.filter(r => r._parentId !== recordId);
+            child.isUserModified = true;
         });
     }
 
@@ -2641,6 +2732,7 @@
 
         deleteDescendantRecords(activeFormId, currentRecord._id);
         formObj.data = formObj.data.filter(r => r._id !== currentRecord._id);
+        formObj.isUserModified = true;
         renderedRecordId = null;
         recordSnapshot = null;
         resetDescendantIndices(activeFormId);
@@ -2682,6 +2774,7 @@
             parentId = parentRecord._id;
         }
         formObj.data.push({ _id: nextRecordId(), _parentId: parentId });
+        formObj.isUserModified = true;
         activeIndexByForm[formObj.id] = formObj.data.length - 1;
         resetDescendantIndices(activeFormId);
         viewMode = 'record';
@@ -2723,6 +2816,7 @@
             XLSX.utils.book_append_sheet(wb, ws, formObj.title.slice(0, 31));
         });
         XLSX.writeFile(wb, `DataForge_export_${new Date().toISOString().slice(0, 10)}.xlsx`);
+        closeExportModal();
         showToast("Exportado a Excel correctamente");
     }
 
@@ -2760,7 +2854,7 @@
                 if (file.name.endsWith('.json')) {
                     const parsed = JSON.parse(new TextDecoder().decode(e.target.result));
                     if (Array.isArray(parsed)) {
-                        formsRegistry = parsed;
+                        formsRegistry = parsed.map(f => ({ ...f, isUserModified: true }));
                         recordIdCounter = Math.max(...formsRegistry.flatMap(f => f.data.map(r => r._id || 0)), 0) + 1;
                         persistData();
                         showLauncher();
@@ -2806,6 +2900,7 @@
                         webhook: "", 
                         pivotFormId: null, 
                         pivotField: "",
+                        isUserModified: true,
                         fields: header.map(name => ({ 
                             name, 
                             type: checkboxCols.has(name) ? 'checkbox' : 'text', 
