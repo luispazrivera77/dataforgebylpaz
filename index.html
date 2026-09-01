@@ -1145,25 +1145,9 @@
                     <span>🛒 Lista Supermercado</span>
                     <small>Control de compras (67 ítems)</small>
                 </div>
-                <div class="template-card" onclick="loadTemplate('obras')">
-                    <span>🏗️ Obras y Compras</span>
-                    <small>Relación Padre-Hijo</small>
-                </div>
-                <div class="template-card" onclick="loadTemplate('inventario')">
-                    <span>📦 Bodega e Inventario</span>
-                    <small>Stock de productos</small>
-                </div>
-                <div class="template-card" onclick="loadTemplate('encuesta')">
-                    <span>⭐ Encuesta Satisfacción</span>
-                    <small>Calificaciones</small>
-                </div>
-                <div class="template-card" onclick="loadTemplate('usuarios')">
-                    <span>👥 Registro Usuarios</span>
-                    <small>Base de contactos</small>
-                </div>
-                <div class="template-card" onclick="loadTemplate('incidencias')">
-                    <span>🛠️ Reporte Incidencias</span>
-                    <small>Tickets de soporte</small>
+                <div class="template-card" onclick="loadTemplate('control_obra')">
+                    <span>🏗️ Control Integral Obra</span>
+                    <small>Presupuesto, Materiales, Cronograma</small>
                 </div>
             </div>
         </div>
@@ -1847,113 +1831,83 @@
                 ],
                 data: supermarketData
             }];
-        } else if (type === 'obras') {
-            const baseId1 = Date.now();
-            const baseId2 = baseId1 + 1;
+        } else if (type === 'control_obra') {
+            const baseId = Date.now();
+            const matId = baseId + 1;
+            const cronoId = baseId + 2;
+            const avanceId = baseId + 3;
+
             newForms = [
                 {
-                    id: baseId1, title: "Obras", webhook: "", pivotFormId: null, pivotField: "", isUserModified: false,
+                    id: baseId, title: "Presupuesto", webhook: "", pivotFormId: null, pivotField: "", isUserModified: false,
                     fields: [
-                        { name: "Nombre Obra", type: "text", required: true },
-                        { name: "Dirección", type: "text", required: false },
-                        { name: "Fecha inicio", type: "date", required: true },
-                        { name: "Fecha término", type: "date", required: false },
-                        { name: "Presupuesto", type: "number", required: true },
-                        { name: "Saldo obra", type: "number", required: false }
+                        { name: "Ítem", type: "number", required: true },
+                        { name: "Partida / Descripción", type: "text", required: true },
+                        { name: "Unidad", type: "text", required: false },
+                        { name: "Cant. Presupuestada", type: "number", required: true },
+                        { name: "Precio Unitario", type: "number", required: true },
+                        { name: "Costo Presupuestado", type: "number", required: false },
+                        { name: "Cant. Real Ejecutada", type: "number", required: false },
+                        { name: "Costo Real", type: "number", required: false },
+                        { name: "Variación ($)", type: "number", required: false },
+                        { name: "Variación (%)", type: "number", required: false }
                     ],
                     data: [
-                        { _id: 101, _parentId: null, "Nombre Obra": "Edificio Los Aromos", "Dirección": "Casa 98 Condominio Santuario", "Fecha inicio": "2026-07-27", "Fecha término": "2026-08-07", "Presupuesto": "1000000", "Saldo obra": "-540011" },
-                        { _id: 102, _parentId: null, "Nombre Obra": "Ironcar", "Dirección": "Pdte. Alessandri 1888, Coquimbo", "Fecha inicio": "2026-07-13", "Fecha término": "2026-12-13", "Presupuesto": "115000000", "Saldo obra": "79568577" },
-                        { _id: 103, _parentId: null, "Nombre Obra": "Combustible 2026", "Dirección": "Los Criollos 2552", "Fecha inicio": "2026-08-03", "Fecha término": "2026-12-31", "Presupuesto": "1000", "Saldo obra": "-594744" }
+                        { _id: nextRecordId(), _parentId: null, "Ítem": 1, "Partida / Descripción": "Hormigón fundaciones (ejemplo)", "Unidad": "m3", "Cant. Presupuestada": 120, "Precio Unitario": 95000, "Costo Presupuestado": 11400000, "Cant. Real Ejecutada": 115, "Costo Real": "", "Variación ($)": "", "Variación (%)": "" }
                     ]
                 },
                 {
-                    id: baseId2, title: "Compras", webhook: "", pivotFormId: baseId1, pivotField: "Nombre Obra", isUserModified: false,
+                    id: matId, title: "Materiales", webhook: "", pivotFormId: null, pivotField: "", isUserModified: false,
                     fields: [
-                        { name: "Fecha compra", type: "date", required: true },
-                        { name: "Producto comprado", type: "text", required: true },
-                        { name: "Precio c/IVA", type: "number", required: true },
-                        { name: "Comprado por", type: "text", required: false },
+                        { name: "Material", type: "text", required: true },
+                        { name: "Unidad", type: "text", required: false },
+                        { name: "Stock Inicial", type: "number", required: true },
+                        { name: "Ingresos", type: "number", required: false },
+                        { name: "Salidas", type: "number", required: false },
+                        { name: "Stock Actual", type: "number", required: true },
+                        { name: "Punto de Reorden", type: "number", required: false },
+                        { name: "Estado", type: "text", required: false },
                         { name: "Proveedor", type: "text", required: false },
-                        { name: "Obra", type: "text", required: true },
-                        { name: "Comentarios", type: "text", required: false }
+                        { name: "Última Actualización", type: "date", required: false }
                     ],
                     data: [
-                        { _id: 201, _parentId: 101, "Fecha compra": "2026-07-27", "Producto comprado": "Siliconas mantenimiento", "Precio c/IVA": "24103", "Comprado por": "Marcia Marcoleta", "Proveedor": "Sodimac", "Obra": "Edificio Los Aromos", "Comentarios": "Sellado general perimetral" },
-                        { _id: 202, _parentId: 101, "Fecha compra": "2026-07-31", "Producto comprado": "Varios techo", "Precio c/IVA": "35540", "Comprado por": "Marcia Marcoleta", "Proveedor": "Sodimac", "Obra": "Edificio Los Aromos", "Comentarios": "Varios reparación techo" },
-                        { _id: 203, _parentId: 102, "Fecha compra": "2026-08-05", "Producto comprado": "Hormigón g25 5m3 fundaciones", "Precio c/IVA": "841000", "Comprado por": "Marcia Marcoleta", "Proveedor": "Choapamix", "Obra": "Ironcar", "Comentarios": "Hormigón fundaciones primera parte" }
+                        { _id: nextRecordId(), _parentId: null, "Material": "Cemento (ejemplo)", "Unidad": "saco", "Stock Inicial": 200, "Ingresos": 150, "Salidas": 180, "Stock Actual": 170, "Punto de Reorden": 50, "Estado": "OK", "Proveedor": "Cementos del Norte", "Última Actualización": "" }
+                    ]
+                },
+                {
+                    id: cronoId, title: "Cronograma", webhook: "", pivotFormId: null, pivotField: "", isUserModified: false,
+                    fields: [
+                        { name: "Actividad", type: "text", required: true },
+                        { name: "Responsable", type: "text", required: false },
+                        { name: "Fecha Inicio Plan", type: "date", required: true },
+                        { name: "Fecha Fin Plan", type: "date", required: true },
+                        { name: "Duración Plan (días)", type: "number", required: false },
+                        { name: "% Avance", type: "number", required: false },
+                        { name: "Fecha Fin Real Estimada", type: "date", required: false },
+                        { name: "Días Atraso", type: "number", required: false },
+                        { name: "Estado", type: "text", required: false }
+                    ],
+                    data: [
+                        { _id: nextRecordId(), _parentId: null, "Actividad": "Excavación fundaciones (ejemplo)", "Responsable": "Juan Pérez", "Fecha Inicio Plan": "2026-09-01", "Fecha Fin Plan": "2026-09-10", "Duración Plan (días)": "", "% Avance": 0.6, "Fecha Fin Real Estimada": "2026-09-12", "Días Atraso": "", "Estado": "" }
+                    ]
+                },
+                {
+                    id: avanceId, title: "Avance Físico", webhook: "", pivotFormId: null, pivotField: "", isUserModified: false,
+                    fields: [
+                        { name: "Partida", type: "text", required: true },
+                        { name: "Unidad", type: "text", required: false },
+                        { name: "Cantidad Total Contratada", type: "number", required: true },
+                        { name: "Cantidad Ejecutada a la Fecha", type: "number", required: true },
+                        { name: "% Avance", type: "number", required: false },
+                        { name: "Fecha de Medición", type: "date", required: false },
+                        { name: "Responsable", type: "text", required: false },
+                        { name: "Observaciones", type: "text", required: false }
+                    ],
+                    data: [
+                        { _id: nextRecordId(), _parentId: null, "Partida": "Muros de albañilería (ejemplo)", "Unidad": "m2", "Cantidad Total Contratada": 850, "Cantidad Ejecutada a la Fecha": 340, "% Avance": "", "Fecha de Medición": "", "Responsable": "María Soto", "Observaciones": "Avance normal" }
                     ]
                 }
             ];
-        } else if (type === 'inventario') {
-            const baseId = Date.now();
-            newForms = [{
-                id: baseId, title: "Inventario Bodega", webhook: "", pivotFormId: null, pivotField: "", isUserModified: false,
-                fields: [
-                    { name: "Producto", type: "text", required: true },
-                    { name: "Categoría", type: "text", required: true },
-                    { name: "Stock", type: "number", required: true },
-                    { name: "Ubicación", type: "text", required: false },
-                    { name: "Disponible", type: "checkbox", required: false }
-                ],
-                data: [
-                    { _id: nextRecordId(), _parentId: null, "Producto": "Taladro Percutor 18V", "Categoría": "Herramientas", "Stock": "14", "Ubicación": "Estante A-1", "Disponible": true },
-                    { _id: nextRecordId(), _parentId: null, "Producto": "Saco Cemento Polpaico 42.5kg", "Categoría": "Materiales", "Stock": "320", "Ubicación": "Bodega Central", "Disponible": true },
-                    { _id: nextRecordId(), _parentId: null, "Producto": "Disco de Corte Diamantado 9\"", "Categoría": "Accesorios", "Stock": "8", "Ubicación": "Estante B-3", "Disponible": true },
-                    { _id: nextRecordId(), _parentId: null, "Producto": "Casco de Seguridad Ala Ancha", "Categoría": "EPI", "Stock": "45", "Ubicación": "Casillero E", "Disponible": true }
-                ]
-            }];
-        } else if (type === 'encuesta') {
-            const baseId = Date.now();
-            newForms = [{
-                id: baseId, title: "Encuesta Satisfacción", webhook: "", pivotFormId: null, pivotField: "", isUserModified: false,
-                fields: [
-                    { name: "Usuario", type: "text", required: true },
-                    { name: "Servicio", type: "text", required: true },
-                    { name: "Puntuación (1-5)", type: "number", required: true },
-                    { name: "Comentarios", type: "text", required: false },
-                    { name: "Fecha", type: "date", required: true }
-                ],
-                data: [
-                    { _id: nextRecordId(), _parentId: null, "Usuario": "Carla Mendoza", "Servicio": "Remodelación Cocina", "Puntuación (1-5)": "5", "Comentarios": "Excelente trabajo y puntualidad impecable.", "Fecha": "2026-08-20" },
-                    { _id: nextRecordId(), _parentId: null, "Usuario": "Hernán Cortés", "Servicio": "Postventa Techos", "Puntuación (1-5)": "4", "Comentarios": "Muy buena atención, resolvieron rápido el detalle.", "Fecha": "2026-08-22" },
-                    { _id: nextRecordId(), _parentId: null, "Usuario": "Macarena Cifuentes", "Servicio": "Muebles a medida", "Puntuación (1-5)": "5", "Comentarios": "El acabado superó mis expectativas.", "Fecha": "2026-08-25" }
-                ]
-            }];
-        } else if (type === 'usuarios') {
-            const baseId = Date.now();
-            newForms = [{
-                id: baseId, title: "Registro Usuarios", webhook: "", pivotFormId: null, pivotField: "", isUserModified: false,
-                fields: [
-                    { name: "Nombre", type: "text", required: true },
-                    { name: "Apellido", type: "text", required: true },
-                    { name: "Correo", type: "email", required: true },
-                    { name: "Celular", type: "text", required: false },
-                    { name: "Empresa", type: "text", required: false }
-                ],
-                data: [
-                    { _id: nextRecordId(), _parentId: null, "Nombre": "Juan", "Apellido": "Pérez", "Correo": "juan@example.com", "Celular": "+5698065890", "Empresa": "Constructora SP" },
-                    { _id: nextRecordId(), _parentId: null, "Nombre": "Luis Alejandro", "Apellido": "Paz Rivera", "Correo": "lpaz@userena.cl", "Celular": "961224413", "Empresa": "Particular" },
-                    { _id: nextRecordId(), _parentId: null, "Nombre": "Javier", "Apellido": "Castillo", "Correo": "jcastillo@manto.cl", "Celular": "+56942807073", "Empresa": "Manto Ing." }
-                ]
-            }];
-        } else if (type === 'incidencias') {
-            const baseId = Date.now();
-            newForms = [{
-                id: baseId, title: "Reporte Incidencias", webhook: "", pivotFormId: null, pivotField: "", isUserModified: false,
-                fields: [
-                    { name: "Descripción", type: "text", required: true },
-                    { name: "Prioridad", type: "text", required: true },
-                    { name: "Estado", type: "text", required: true },
-                    { name: "Reportado por", type: "text", required: false },
-                    { name: "Fecha", type: "date", required: true }
-                ],
-                data: [
-                    { _id: nextRecordId(), _parentId: null, "Descripción": "Falla de red en piso 2", "Prioridad": "Alta", "Estado": "Pendiente", "Reportado por": "Marcia Marcoleta", "Fecha": "2026-08-28" },
-                    { _id: nextRecordId(), _parentId: null, "Descripción": "Gotera en sector bodega principal", "Prioridad": "Crítica", "Estado": "En proceso", "Reportado por": "Jorge Olaya", "Fecha": "2026-08-27" },
-                    { _id: nextRecordId(), _parentId: null, "Descripción": "Calibración nivel láser estación total", "Prioridad": "Media", "Estado": "Resuelto", "Reportado por": "Guido Castillo", "Fecha": "2026-08-24" }
-                ]
-            }];
         }
 
         formsRegistry.push(...newForms);
@@ -2951,27 +2905,6 @@
                     });
                 });
 
-                let obrasForm = tempForms.find(f => f.title.toLowerCase() === 'obras');
-                if (obrasForm) {
-                    tempForms.forEach(form => {
-                        if (form.id === obrasForm.id) return;
-                        const obraField = form.fields.find(f => f.name.toLowerCase() === 'obra');
-                        if (obraField) {
-                            form.pivotFormId = obrasForm.id;
-                            form.pivotField = obraField.name;
-                            form.data.forEach(record => {
-                                const valObra = String(record[obraField.name] || '').trim().toLowerCase();
-                                const matchedParent = obrasForm.data.find(parentRec => {
-                                    const parentFieldKey = obrasForm.fields[0].name;
-                                    const parentVal = String(parentRec[parentFieldKey] || '').trim().toLowerCase();
-                                    return parentVal === valObra;
-                                });
-                                if (matchedParent) record._parentId = matchedParent._id;
-                            });
-                        }
-                    });
-                }
-
                 if (tempForms.length > 0) {
                     formsRegistry.push(...tempForms);
                     recordIdCounter = Math.max(...formsRegistry.flatMap(f => f.data.map(r => r._id || 0)), 0) + 1;
@@ -3159,7 +3092,7 @@
     if (loadPersistedData()) {
         showLauncher();
     } else {
-        loadTemplate('obras');
+        loadTemplate('supermercado');
     }
 </script>
 
