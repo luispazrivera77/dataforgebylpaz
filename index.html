@@ -1282,19 +1282,15 @@
         </div>
 
         <div class="action-row">
-            <button id="back-parent-btn" onclick="goBackToParent()" class="btn btn-ghost-gold">
+            <button id="back-parent-btn" onclick="goBackToParent()" class="btn btn-ghost-gold" style="flex:1;">
                 <svg class="ic" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
                 Volver
             </button>
-            <button onclick="shareCurrentForm()" class="btn btn-ghost-gold" data-tip="Compartir estructura y datos por WhatsApp, Telegram o Correo">
-                <svg class="ic" viewBox="0 0 24 24" style="width:13px;height:13px;"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-                Compartir
-            </button>
-            <button onclick="showLauncher()" class="btn">
+            <button onclick="showLauncher()" class="btn" style="flex:1;">
                 <svg class="ic" viewBox="0 0 24 24" style="width:13px;height:13px;"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
                 Inicio
             </button>
-            <button onclick="editCurrentFormStructure()" class="btn btn-danger-outline">
+            <button onclick="editCurrentFormStructure()" class="btn btn-danger-outline" style="flex:1;">
                 <svg class="ic" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
                 Editar
             </button>
@@ -1312,27 +1308,6 @@
         <div style="display:flex; gap:6px; flex-wrap:wrap;">
             <button onclick="endTour()" class="btn btn-tiny btn-danger-outline" style="padding: 5px 8px;">Terminar tour</button>
             <button onclick="nextTourStep()" class="btn btn-tiny btn-gold" style="padding: 5px 12px;">Siguiente →</button>
-        </div>
-    </div>
-</div>
-
-<div id="share-modal" class="modal-overlay hidden">
-    <div class="modal-content" style="max-width: 420px;">
-        <div class="brand-row" style="margin-bottom: 0; padding-bottom: 12px;">
-            <div class="brand" style="font-size: 18px;">Compartir Formulario<small>DESCARGA Y ENVÍO RÁPIDO</small></div>
-            <button onclick="closeShareModal()" class="btn btn-tiny btn-ghost-gold">Cerrar</button>
-        </div>
-        <div class="modal-body" style="display: flex; flex-direction: column; gap: 12px;">
-            <p style="margin:0; font-size:13px; line-height: 1.5;">Al hacer clic en WhatsApp o Telegram, <strong>el archivo JSON se descargará automáticamente en tu teléfono</strong>. Luego solo adjúntalo con el botón de clip 📎 en el chat.</p>
-            <button onclick="shareViaWhatsApp()" class="btn" style="background: #25d366; color: #fff; border:none; justify-content: flex-start; gap: 12px;">
-                💬 Abrir WhatsApp (y descargar archivo)
-            </button>
-            <button onclick="shareViaTelegram()" class="btn" style="background: #0088cc; color: #fff; border:none; justify-content: flex-start; gap: 12px;">
-                ✈️ Abrir Telegram (y descargar archivo)
-            </button>
-            <button onclick="downloadFormJSONFile()" class="btn btn-gold" style="justify-content: flex-start; gap: 12px;">
-                📥 Solo descargar archivo JSON
-            </button>
         </div>
     </div>
 </div>
@@ -1401,7 +1376,6 @@
     let currentTourStep = 0;
     let activeTourType = 'launcher';
 
-    // Funciones de persistencia con localStorage
     function persistData() {
         try {
             localStorage.setItem('dataforge_registry', JSON.stringify(formsRegistry));
@@ -1926,7 +1900,6 @@
             }];
         }
 
-        // Agregar las plantillas generadas a la lista sin destruir los formularios previos existentes
         formsRegistry.push(...newForms);
         recordIdCounter = 500;
         deletedRecordsStack = [];
@@ -1940,56 +1913,6 @@
                 startTour('runtime');
             }
         }, 300);
-    }
-
-    function shareCurrentForm() {
-        if (!activeFormId) return;
-        const formObj = getForm(activeFormId);
-        if (!formObj) return;
-        document.getElementById('share-modal').classList.remove('hidden');
-    }
-
-    function closeShareModal() {
-        document.getElementById('share-modal').classList.add('hidden');
-    }
-
-    function getShareBlobAndData() {
-        const formObj = getForm(activeFormId);
-        const children = getChildForms(activeFormId);
-        const formsToShare = [formObj, ...children];
-        const jsonStr = JSON.stringify(formsToShare, null, 2);
-        const blob = new Blob([jsonStr], { type: 'application/json' });
-        const filename = `DataForge_${formObj.title.replace(/\s+/g, '_')}.json`;
-        return { blob, filename, formTitle: formObj.title };
-    }
-
-    function downloadFormJSONFile() {
-        const { blob, filename } = getShareBlobAndData();
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = filename;
-        link.click();
-        closeShareModal();
-        showToast("Archivo JSON descargado en tu dispositivo");
-    }
-
-    function shareViaWhatsApp() {
-        downloadFormJSONFile();
-        window.open(`https://api.whatsapp.com/send?text=` + encodeURIComponent(`Hola, te comparto el formulario de DataForge. Acabo de descargar el archivo JSON, adjúntalo aquí con el clip 📎`), '_blank');
-    }
-
-    function shareViaTelegram() {
-        downloadFormJSONFile();
-        window.open(`https://t.me/share/url?url=&text=` + encodeURIComponent(`Hola, te comparto el formulario de DataForge. Archivo JSON descargado para adjuntar.`), '_blank');
-    }
-
-    function shareViaEmail() {
-        const { formTitle } = getShareBlobAndData();
-        downloadFormJSONFile();
-        const subject = encodeURIComponent(`Formulario DataForge: ${formTitle}`);
-        const body = encodeURIComponent(`Hola,\n\nTe comparto el archivo del formulario "${formTitle}" para trabajar en DataForge.\n\nSaludos.`);
-        window.open(`mailto:?subject=${subject}&body=${body}`, '_blank');
     }
 
     function handleGlobalSearch(query) {
@@ -3026,7 +2949,6 @@
         applyEmptyToggleIcon();
     }
 
-    // Inicialización al cargar la página con persistencia recuperada
     initMiniTips();
     applyThemeIcon();
     initHeroCollapse();
